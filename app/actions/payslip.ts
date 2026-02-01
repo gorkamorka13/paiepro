@@ -11,7 +11,7 @@ import type { ActionResult } from '@/types/payslip';
 
 export async function processPayslipAction(
     formData: FormData
-): Promise<ActionResult> {
+): Promise<ActionResult<Payslip>> {
     try {
         // 1. Validation du fichier
         const file = formData.get('file') as File;
@@ -61,7 +61,7 @@ export async function processPayslipAction(
 
             return {
                 success: true,
-                data: payslip as any,
+                data: payslip as Payslip,
             };
         }
 
@@ -109,7 +109,7 @@ export async function processPayslipAction(
 
         return {
             success: true,
-            data: payslip as any,
+            data: payslip as Payslip,
         };
 
     } catch (error) {
@@ -125,9 +125,8 @@ export async function processPayslipAction(
 // Action pour récupérer tous les bulletins (optionnellement par entreprise)
 export async function getPayslipsAction(companyId?: string): Promise<ActionResult<Payslip[]>> {
     try {
-        const where = companyId ? { companyId } : {};
         const payslips = await prisma.payslip.findMany({
-            where: where as any,
+            where: companyId ? { companyId } : {},
             orderBy: [
                 { periodYear: 'desc' },
                 { periodMonth: 'desc' },

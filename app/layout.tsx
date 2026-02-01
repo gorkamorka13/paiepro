@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import "./globals.css";
 import { Sidebar } from "@/components/Sidebar";
 import { Providers } from "@/components/Providers";
+import { Suspense } from "react";
 
 const geistSans = Geist({
     variable: "--font-geist-sans",
@@ -32,7 +33,9 @@ export default function RootLayout({
             >
                 <Providers>
                     <div className="flex min-h-screen">
-                        <Sidebar />
+                        <Suspense fallback={<div className="w-60 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800" />}>
+                            <Sidebar />
+                        </Suspense>
                         <div className="flex-1 flex flex-col min-w-0 md:pl-60"> {/* Added md:pl-60 to account for fixed sidebar */}
                             <main className="flex-1 transition-all duration-300 overflow-hidden">
                                 <div className="p-4 md:p-8 pt-20 md:pt-8 min-h-screen max-w-full">

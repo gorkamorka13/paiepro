@@ -60,7 +60,7 @@ export function UploadZone() {
                             ...updated[index],
                             status: 'success',
                             progress: 100,
-                            id: result.data.id,
+                            id: result.data?.id,
                         };
                         return updated;
                     });
