@@ -12,7 +12,7 @@ export default function Home() {
                 {/* Header */}
                 <div className="text-center mb-8 md:mb-12">
                     <div className="flex flex-col md:flex-row items-center justify-center gap-3 mb-4">
-                        <FileText className="w-10 h-10 md:w-12 md:h-12 text-blue-600" />
+                        <img src="/paiepro.png" alt="PaiePro Logo" className="w-12 h-12 md:w-16 md:h-16 object-contain" />
                         <h1 className="text-3xl md:text-5xl font-bold text-gray-900 dark:text-white">
                             Payslip Analyzer AI
                         </h1>

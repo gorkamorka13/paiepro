@@ -65,8 +65,8 @@ export function Sidebar() {
                 `}
             >
                 <div className="p-6 flex items-center gap-3">
-                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <FileText className="w-5 h-5 text-white" />
+                    <div className="w-8 h-8 flex-shrink-0">
+                        <img src="/paiepro.png" alt="PaiePro Logo" className="w-full h-full object-contain" />
                     </div>
                     {!isCollapsed && (
                         <span className="font-bold text-xl tracking-tight text-gray-900 dark:text-white truncate">

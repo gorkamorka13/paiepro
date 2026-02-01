@@ -9,6 +9,10 @@ import { Suspense } from "react";
 export const metadata: Metadata = {
     title: "Payslip Analyzer AI",
     description: "Analysez vos bulletins de paie avec l'intelligence artificielle",
+    icons: {
+        icon: "/paiepro.png",
+        apple: "/paiepro.png",
+    }
 };
 
 export default function RootLayout({
