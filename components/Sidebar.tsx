@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { Home, BarChart3, Settings, HelpCircle, ChevronLeft, ChevronRight, FileText, Sun, Moon, Menu, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
+import packageInfo from '../package.json';
 
 export function Sidebar() {
     const pathname = usePathname();
@@ -143,6 +144,21 @@ export function Sidebar() {
                             </>
                         )}
                     </button>
+                    {/* Credits & Version */}
+                    <div className="mt-4 px-3 py-2 text-center border-t border-gray-100 dark:border-gray-800">
+                        {!isCollapsed ? (
+                            <div className="space-y-1">
+                                <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
+                                    © {new Date().getFullYear()} Michel ESPARSA
+                                </p>
+                                <p className="text-[9px] text-gray-300 dark:text-gray-600">
+                                    v{packageInfo.version}
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="text-[10px] text-gray-400 font-bold">ME</div>
+                        )}
+                    </div>
                 </div>
             </aside>
         </>
