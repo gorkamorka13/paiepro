@@ -3,13 +3,11 @@
 import { revalidatePath } from 'next/cache';
 import { put } from '@vercel/blob';
 import { prisma } from '@/lib/prisma';
-import type { Payslip } from '@prisma/client';
+import type { Payslip, UpdatePayslipData } from '@/types/payslip';
 import { analyzeDocumentHybrid } from '@/lib/extraction-service';
-import { fileUploadSchema, createPayslipSchema, updatePayslipSchema, type UpdatePayslipData } from '@/lib/validations';
+import { fileUploadSchema, createPayslipSchema, updatePayslipSchema } from '@/lib/validations';
 
-type ActionResult =
-    | { success: true; data: { id: string; fileName: string } }
-    | { success: false; error: string };
+import type { ActionResult } from '@/types/payslip';
 
 export async function processPayslipAction(
     formData: FormData
@@ -78,9 +76,28 @@ export async function processPayslipAction(
         });
 
         // 5. Sauvegarde en base de données
+        // Trouver ou créer l'entreprise
+        let companyId = null;
+        if (extractedData.employerName) {
+            const company = await prisma.company.upsert({
+                where: { name: extractedData.employerName },
+                update: {
+                    siret: extractedData.siretNumber || undefined,
+                    urssaf: extractedData.urssafNumber || undefined
+                },
+                create: {
+                    name: extractedData.employerName,
+                    siret: extractedData.siretNumber,
+                    urssaf: extractedData.urssafNumber
+                }
+            });
+            companyId = company.id;
+        }
+
         const payslip = await prisma.payslip.create({
             data: {
                 ...payslipData,
+                companyId,
                 processingStatus: 'completed',
             },
         });
@@ -105,10 +122,12 @@ export async function processPayslipAction(
     }
 }
 
-// Action pour récupérer tous les bulletins
-export async function getPayslipsAction() {
+// Action pour récupérer tous les bulletins (optionnellement par entreprise)
+export async function getPayslipsAction(companyId?: string): Promise<ActionResult<Payslip[]>> {
     try {
+        const where = companyId ? { companyId } : {};
         const payslips = await prisma.payslip.findMany({
+            where: where as any,
             orderBy: [
                 { periodYear: 'desc' },
                 { periodMonth: 'desc' },
@@ -116,7 +135,7 @@ export async function getPayslipsAction() {
             ],
         });
 
-        return { success: true, data: payslips };
+        return { success: true, data: payslips as Payslip[] };
     } catch (error) {
         console.error('❌ Erreur lors de la récupération:', error);
         return {
@@ -168,5 +187,23 @@ export async function updatePayslipAction(
             success: false,
             error: error instanceof Error ? error.message : 'Erreur lors de la mise à jour'
         };
+    }
+}
+
+// Action pour récupérer les entreprises
+export async function getCompaniesAction() {
+    try {
+        const companies = await prisma.company.findMany({
+            orderBy: { name: 'asc' },
+            include: {
+                _count: {
+                    select: { payslips: true }
+                }
+            }
+        });
+        return { success: true, data: companies };
+    } catch (error) {
+        console.error('❌ Erreur lors de la récupération des entreprises:', error);
+        return { success: false, error: 'Impossible de récupérer les entreprises' };
     }
 }

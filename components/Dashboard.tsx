@@ -2,32 +2,29 @@
 
 import { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { getPayslipsAction, deletePayslipAction, updatePayslipAction } from '@/app/actions/payslip';
+import { getPayslipsAction, deletePayslipAction, updatePayslipAction, getCompaniesAction } from '@/app/actions/payslip';
 import { Trash2, ExternalLink, Users, Edit2, X, Save, FileSpreadsheet, FileText } from 'lucide-react';
 import { toast } from 'sonner';
-import type { Payslip } from '@prisma/client';
-import type { UpdatePayslipData } from '@/lib/validations';
+import type { Payslip, UpdatePayslipData } from '@/types/payslip';
 import { exportToExcel, exportToPDF } from '@/lib/export-utils';
+import useSWR, { mutate } from 'swr';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
 
+const fetcher = async ([key, companyId]: [string, string | undefined]) => {
+    const result = await getPayslipsAction(companyId);
+    if (!result.success) throw new Error(result.error);
+    return result.data || [];
+};
+
 export function Dashboard() {
-    const [payslips, setPayslips] = useState<Payslip[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [selectedCompanyId, setSelectedCompanyId] = useState<string | undefined>(undefined);
+    const { data: payslips = [], error, isLoading, mutate: revalidate } = useSWR<Payslip[]>(['payslips', selectedCompanyId], fetcher);
+    const { data: companies = [] } = useSWR('companies', async () => {
+        const result = await getCompaniesAction();
+        return result.data || [];
+    });
     const [editingPayslip, setEditingPayslip] = useState<Payslip | null>(null);
-
-    useEffect(() => {
-        loadPayslips();
-    }, []);
-
-    const loadPayslips = async () => {
-        setIsLoading(true);
-        const result = await getPayslipsAction();
-        if (result.success) {
-            setPayslips(result.data);
-        }
-        setIsLoading(false);
-    };
 
     const handleDelete = async (id: string) => {
         if (!confirm('Supprimer ce bulletin ?')) return;
@@ -35,7 +32,7 @@ export function Dashboard() {
         const result = await deletePayslipAction(id);
         if (result.success) {
             toast.success('Bulletin supprimé');
-            loadPayslips();
+            revalidate();
         } else {
             toast.error(result.error);
         }
@@ -63,6 +60,21 @@ export function Dashboard() {
         );
     }
 
+    if (error) {
+        return (
+            <div className="flex flex-col items-center justify-center p-12 bg-red-50 dark:bg-red-900/20 rounded-2xl border border-red-100 dark:border-red-900/30">
+                <p className="text-red-600 dark:text-red-400 font-bold text-lg mb-2">Impossible de charger les données</p>
+                <p className="text-red-500 dark:text-red-400/70 mb-6 text-sm">Vérifiez votre connexion ou contactez le support.</p>
+                <button
+                    onClick={() => revalidate()}
+                    className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all font-bold shadow-lg shadow-red-500/20"
+                >
+                    Réessayer
+                </button>
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -70,22 +82,34 @@ export function Dashboard() {
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Tableau de Bord</h1>
                     <p className="text-gray-500 dark:text-gray-400">Gérez et analysez vos bulletins de paie centralisés.</p>
                 </div>
-                <div className="flex gap-3">
-                    <button
-                        onClick={() => exportToExcel(payslips)}
-                        className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors shadow-sm"
+            </div>
+            <div className="flex gap-3 items-center">
+                {companies.length > 0 && (
+                    <select
+                        value={selectedCompanyId || ''}
+                        onChange={(e) => setSelectedCompanyId(e.target.value || undefined)}
+                        className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                        <FileSpreadsheet className="w-4 h-4" />
-                        <span>Exporter Excel</span>
-                    </button>
-                    <button
-                        onClick={() => exportToPDF(payslips)}
-                        className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors shadow-sm"
-                    >
-                        <FileText className="w-4 h-4" />
-                        <span>Exporter PDF</span>
-                    </button>
-                </div>
+                        <option value="">Tous les clients</option>
+                        {companies.map((c: any) => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                    </select>
+                )}
+                <button
+                    onClick={() => exportToExcel(payslips)}
+                    className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors shadow-sm"
+                >
+                    <FileSpreadsheet className="w-4 h-4" />
+                    <span>Exporter Excel</span>
+                </button>
+                <button
+                    onClick={() => exportToPDF(payslips)}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors shadow-sm"
+                >
+                    <FileText className="w-4 h-4" />
+                    <span>Exporter PDF</span>
+                </button>
             </div>
 
             {/* Statistiques */}
@@ -125,44 +149,46 @@ export function Dashboard() {
             </div>
 
             {/* Répartition par Client */}
-            {clientData.length > 0 && (
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center gap-2 mb-6">
-                        <Users className="w-5 h-5 text-blue-600" />
-                        <h2 className="text-xl font-semibold">Répartition par Client (Cumul Net)</h2>
-                    </div>
+            {
+                clientData.length > 0 && (
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center gap-2 mb-6">
+                            <Users className="w-5 h-5 text-blue-600" />
+                            <h2 className="text-xl font-semibold">Répartition par Client (Cumul Net)</h2>
+                        </div>
 
-                    <div className="h-[300px] md:h-[400px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={clientData} margin={{ top: 20, right: 10, left: -10, bottom: 60 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                <XAxis
-                                    dataKey="name"
-                                    interval={0}
-                                    angle={-45}
-                                    textAnchor="end"
-                                    tick={{ fontSize: 10 }}
-                                    height={80}
-                                />
-                                <YAxis
-                                    tickFormatter={(value) => `${value} €`}
-                                    tick={{ fontSize: 10 }}
-                                />
-                                <Tooltip
-                                    formatter={(value: number) => `${value.toFixed(2)} €`}
-                                    labelStyle={{ color: '#000' }}
-                                    cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }}
-                                />
-                                <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                                    {clientData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                    ))}
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
+                        <div className="h-[300px] md:h-[400px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={clientData} margin={{ top: 20, right: 10, left: -10, bottom: 60 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                    <XAxis
+                                        dataKey="name"
+                                        interval={0}
+                                        angle={-45}
+                                        textAnchor="end"
+                                        tick={{ fontSize: 10 }}
+                                        height={80}
+                                    />
+                                    <YAxis
+                                        tickFormatter={(value) => `${value} €`}
+                                        tick={{ fontSize: 10 }}
+                                    />
+                                    <Tooltip
+                                        formatter={(value: number) => `${value.toFixed(2)} €`}
+                                        labelStyle={{ color: '#000' }}
+                                        cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }}
+                                    />
+                                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                                        {clientData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
 
             {/* Tableau des bulletins */}
@@ -291,23 +317,25 @@ export function Dashboard() {
             </div>
 
             {/* Modal d'édition */}
-            {editingPayslip && (
-                <EditModal
-                    payslip={editingPayslip}
-                    onClose={() => setEditingPayslip(null)}
-                    onSave={async (id, data) => {
-                        const result = await updatePayslipAction(id, data);
-                        if (result.success) {
-                            toast.success('Bulletin mis à jour');
-                            loadPayslips();
-                            setEditingPayslip(null);
-                        } else {
-                            toast.error(result.error);
-                        }
-                    }}
-                />
-            )}
-        </div>
+            {
+                editingPayslip && (
+                    <EditModal
+                        payslip={editingPayslip as Payslip}
+                        onClose={() => setEditingPayslip(null)}
+                        onSave={async (id, data) => {
+                            const result = await updatePayslipAction(id, data);
+                            if (result.success) {
+                                toast.success('Bulletin mis à jour');
+                                revalidate();
+                                setEditingPayslip(null);
+                            } else {
+                                toast.error(result.error);
+                            }
+                        }}
+                    />
+                )
+            }
+        </div >
     );
 }
 

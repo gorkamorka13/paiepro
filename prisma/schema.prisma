@@ -7,6 +7,16 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Company {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  siret     String?
+  urssaf    String?
+  payslips  Payslip[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
 model Payslip {
   id               String   @id @default(cuid())
   
@@ -25,6 +35,10 @@ model Payslip {
   siretNumber      String?
   urssafNumber     String?
   
+  // Relation Entreprise
+  companyId        String?
+  company          Company? @relation(fields: [companyId], references: [id])
+
   // Montants Extraits
   netToPay         Float    @db.DoublePrecision // Net à payer après impôts
   netBeforeTax     Float    @db.DoublePrecision @default(0) // Net à payer avant impôts
