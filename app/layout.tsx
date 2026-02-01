@@ -1,7 +1,4 @@
 // Replaced Google Fonts with system font stack due to network timeouts during build
-const systemSans = "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
-const systemMono = "'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Source Code Pro', monospace";
-
 import type { Metadata } from "next";
 import { Toaster } from "sonner";
 import "./globals.css";
@@ -23,10 +20,10 @@ export default function RootLayout({
         <html lang="fr" suppressHydrationWarning>
             <body
                 className="antialiased bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors duration-300"
-                style={{ 
+                style={{
                     fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
                     '--font-geist-sans': "Inter, -apple-system, sans-serif",
-                    '--font-geist-mono': "'JetBrains Mono', monospace" 
+                    '--font-geist-mono': "'JetBrains Mono', monospace"
                 } as React.CSSProperties}
             >
                 <Providers>
