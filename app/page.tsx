@@ -1,70 +1,30 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { UploadZone } from '@/components/UploadZone';
 import { FileText, BarChart3, Bot, Zap, Settings2 } from 'lucide-react';
 
 export default function Home() {
-    const [useAI, setUseAI] = useState(true);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
             <div className="container mx-auto px-4 py-12">
                 {/* Header */}
-                <div className="text-center mb-12">
-                    <div className="flex items-center justify-center gap-3 mb-4">
-                        <FileText className="w-12 h-12 text-blue-600" />
-                        <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white">
+                <div className="text-center mb-8 md:mb-12">
+                    <div className="flex flex-col md:flex-row items-center justify-center gap-3 mb-4">
+                        <FileText className="w-10 h-10 md:w-12 md:h-12 text-blue-600" />
+                        <h1 className="text-3xl md:text-5xl font-bold text-gray-900 dark:text-white">
                             Payslip Analyzer AI
                         </h1>
                     </div>
-                    <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+                    <p className="text-base md:text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto px-4">
                         Analysez vos bulletins de paie automatiquement grâce à l&apos;intelligence artificielle.
                         Upload, analyse, et visualisation en quelques secondes.
                     </p>
                 </div>
 
-                {/* Mode Selector */}
-                <div className="max-w-md mx-auto mb-8">
-                    <div className="bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm p-1.5 rounded-xl border border-gray-200 dark:border-gray-700 flex">
-                        <button
-                            onClick={() => setUseAI(true)}
-                            className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg transition-all duration-200 ${useAI
-                                ? 'bg-blue-600 text-white shadow-lg'
-                                : 'text-gray-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-gray-700/50'
-                                }`}
-                        >
-                            <Bot className={`w-5 h-5 ${useAI ? 'animate-pulse' : ''}`} />
-                            <div className="text-left">
-                                <div className="font-bold text-sm">Mode IA 🤖</div>
-                                <div className="text-[10px] opacity-80 leading-tight">Gemini 2.5 Flash</div>
-                            </div>
-                        </button>
-                        <button
-                            onClick={() => setUseAI(false)}
-                            className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg transition-all duration-200 ${!useAI
-                                ? 'bg-indigo-600 text-white shadow-lg'
-                                : 'text-gray-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-gray-700/50'
-                                }`}
-                        >
-                            <Settings2 className="w-5 h-5" />
-                            <div className="text-left">
-                                <div className="font-bold text-sm">Classique ⚙️</div>
-                                <div className="text-[10px] opacity-80 leading-tight">Regex & PDF-Parse</div>
-                            </div>
-                        </button>
-                    </div>
-                    <p className="text-center text-xs mt-3 text-gray-500 dark:text-gray-400 italic">
-                        {useAI
-                            ? "L'IA analyse intelligemment la structure du document pour une extraction précise."
-                            : "L'extraction classique utilise des règles fixes. Plus rapide mais moins flexible."
-                        }
-                    </p>
-                </div>
-
                 {/* Upload Zone */}
-                <UploadZone useAI={useAI} />
+                <UploadZone />
 
                 {/* Navigation */}
                 <div className="mt-12 text-center">

@@ -12,10 +12,10 @@ export const fileUploadSchema = z.object({
 
 // Validation données extraites par IA
 export const aiExtractedDataSchema = z.object({
-    employeeName: z.string().min(1).max(255).optional(),
-    employerName: z.string().min(1).max(255).optional(),
-    periodMonth: z.number().int().min(1).max(12).optional(),
-    periodYear: z.number().int().min(2000).max(2100).optional(),
+    employeeName: z.string().min(1).max(255).optional().nullable(),
+    employerName: z.string().min(1).max(255).optional().nullable(),
+    periodMonth: z.number().int().min(1).max(12).optional().nullable(),
+    periodYear: z.number().int().min(2000).max(2100).optional().nullable(),
     netToPay: z.number().nonnegative(), // Net à payer (après impôts)
     netBeforeTax: z.number().nonnegative(), // Net à payer avant impôts
     netTaxable: z.number().nonnegative(), // Net imposable
@@ -23,10 +23,10 @@ export const aiExtractedDataSchema = z.object({
     taxAmount: z.number().nonnegative(), // Montant des impôts
     hoursWorked: z.number().nonnegative().max(744), // Heures travaillées
     hourlyNetTaxable: z.number().nonnegative(), // Salaire horaire net imposable
-    employeeAddress: z.string().optional(),
-    siretNumber: z.string().optional(),
-    urssafNumber: z.string().optional(),
-    aiModel: z.string().optional(),
+    employeeAddress: z.string().optional().nullable(),
+    siretNumber: z.string().optional().nullable(),
+    urssafNumber: z.string().optional().nullable(),
+    aiModel: z.string().optional().nullable(),
 });
 
 export type AIExtractedData = z.infer<typeof aiExtractedDataSchema>;
@@ -57,6 +57,7 @@ export const updatePayslipSchema = z.object({
     employeeAddress: z.string().optional().nullable(),
     siretNumber: z.string().optional().nullable(),
     urssafNumber: z.string().optional().nullable(),
+    processingStatus: z.string().optional(),
 });
 
 export type UpdatePayslipData = z.infer<typeof updatePayslipSchema>;

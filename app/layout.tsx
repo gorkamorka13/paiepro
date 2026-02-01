@@ -33,9 +33,13 @@ export default function RootLayout({
                 <Providers>
                     <div className="flex min-h-screen">
                         <Sidebar />
-                        <main className="flex-1 ml-20 md:ml-64 transition-all duration-300">
-                            {children}
-                        </main>
+                        <div className="flex-1 flex flex-col min-w-0 md:pl-60"> {/* Added md:pl-60 to account for fixed sidebar */}
+                            <main className="flex-1 transition-all duration-300 overflow-hidden">
+                                <div className="p-4 md:p-8 pt-20 md:pt-8 min-h-screen max-w-full">
+                                    {children}
+                                </div>
+                            </main>
+                        </div>
                     </div>
                     <Toaster position="top-right" richColors />
                 </Providers>

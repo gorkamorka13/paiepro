@@ -14,7 +14,7 @@ type FileStatus = {
     id?: string;
 };
 
-export function UploadZone({ useAI = true }: { useAI?: boolean }) {
+export function UploadZone() {
     const [files, setFiles] = useState<FileStatus[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
 
@@ -50,7 +50,6 @@ export function UploadZone({ useAI = true }: { useAI?: boolean }) {
 
                 const formData = new FormData();
                 formData.append('file', fileStatus.file);
-                formData.append('useAI', useAI.toString());
 
                 const result = await processPayslipAction(formData);
 
@@ -104,7 +103,7 @@ export function UploadZone({ useAI = true }: { useAI?: boolean }) {
             <div
                 {...getRootProps()}
                 className={`
-          border-2 border-dashed rounded-lg p-12 text-center cursor-pointer
+          border-2 border-dashed rounded-lg p-6 md:p-12 text-center cursor-pointer
           transition-all duration-200
           ${isDragActive
                         ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'

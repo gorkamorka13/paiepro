@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { getPayslipsAction, deletePayslipAction, updatePayslipAction } from '@/app/actions/payslip';
-import { Trash2, ExternalLink, Users, Edit2, X, Save } from 'lucide-react';
+import { Trash2, ExternalLink, Users, Edit2, X, Save, FileSpreadsheet, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Payslip } from '@prisma/client';
 import type { UpdatePayslipData } from '@/lib/validations';
+import { exportToExcel, exportToPDF } from '@/lib/export-utils';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
 
@@ -64,8 +65,31 @@ export function Dashboard() {
 
     return (
         <div className="space-y-8">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Tableau de Bord</h1>
+                    <p className="text-gray-500 dark:text-gray-400">Gérez et analysez vos bulletins de paie centralisés.</p>
+                </div>
+                <div className="flex gap-3">
+                    <button
+                        onClick={() => exportToExcel(payslips)}
+                        className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors shadow-sm"
+                    >
+                        <FileSpreadsheet className="w-4 h-4" />
+                        <span>Exporter Excel</span>
+                    </button>
+                    <button
+                        onClick={() => exportToPDF(payslips)}
+                        className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors shadow-sm"
+                    >
+                        <FileText className="w-4 h-4" />
+                        <span>Exporter PDF</span>
+                    </button>
+                </div>
+            </div>
+
             {/* Statistiques */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6">
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
                     <p className="text-sm text-gray-500 mb-1">Total Bulletins</p>
                     <p className="text-3xl font-bold">{payslips.length}</p>
@@ -73,25 +97,29 @@ export function Dashboard() {
 
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700 font-medium">
                     <p className="text-sm text-blue-600 dark:text-blue-400 mb-1">Total Brut</p>
-                    <p className="text-3xl font-bold">
+                    <p className="text-2xl md:text-3xl font-bold">
                         {payslips.reduce((sum, p) => sum + Math.trunc(p.grossSalary), 0).toFixed(2)} €
                     </p>
                 </div>
 
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <p className="text-sm text-gray-500 mb-1">Net Moyen</p>
-                    <p className="text-3xl font-bold">
-                        {payslips.length > 0
-                            ? (payslips.reduce((sum, p) => sum + p.netToPay, 0) / payslips.length).toFixed(2)
-                            : '0.00'
-                        } €
+                    <p className="text-sm text-gray-500 mb-1">Total Net à Payer</p>
+                    <p className="text-2xl md:text-3xl font-bold">
+                        {payslips.reduce((sum, p) => sum + p.netToPay, 0).toFixed(2)} €
                     </p>
                 </div>
 
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <p className="text-sm text-gray-500 mb-1">Dernier Net à Payer</p>
-                    <p className="text-3xl font-bold">
-                        {payslips[0]?.netToPay.toFixed(2) || '0.00'} €
+                    <p className="text-sm text-gray-500 mb-1">Total Net Avant Impôts</p>
+                    <p className="text-2xl md:text-3xl font-bold">
+                        {payslips.reduce((sum, p) => sum + p.netBeforeTax, 0).toFixed(2)} €
+                    </p>
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <p className="text-sm text-gray-500 mb-1">Total Heures</p>
+                    <p className="text-2xl md:text-3xl font-bold">
+                        {payslips.reduce((sum, p) => sum + p.hoursWorked, 0).toFixed(2)} h
                     </p>
                 </div>
             </div>
@@ -104,21 +132,21 @@ export function Dashboard() {
                         <h2 className="text-xl font-semibold">Répartition par Client (Cumul Net)</h2>
                     </div>
 
-                    <div className="h-[400px]">
+                    <div className="h-[300px] md:h-[400px]">
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={clientData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                            <BarChart data={clientData} margin={{ top: 20, right: 10, left: -10, bottom: 60 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                                 <XAxis
                                     dataKey="name"
                                     interval={0}
                                     angle={-45}
                                     textAnchor="end"
-                                    tick={{ fontSize: 11 }}
+                                    tick={{ fontSize: 10 }}
                                     height={80}
                                 />
                                 <YAxis
                                     tickFormatter={(value) => `${value} €`}
-                                    tick={{ fontSize: 12 }}
+                                    tick={{ fontSize: 10 }}
                                 />
                                 <Tooltip
                                     formatter={(value: number) => `${value.toFixed(2)} €`}
@@ -138,72 +166,90 @@ export function Dashboard() {
 
 
             {/* Tableau des bulletins */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Période
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Employé
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+                                <th className="px-4 py-3 text-left text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wider">
                                     Salaire Brut
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Net à Payer
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Heures
                                 </th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
                                     Actions
                                 </th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                             {payslips.map((payslip) => {
-                                let modelName = 'IA Gemini';
-                                const rawModel = payslip.aiModel || '';
-
-                                if (rawModel.includes('2.5')) modelName = 'Gemini 2.5 Flash 🚀';
 
                                 return (
                                     <tr key={payslip.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/50">
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            {payslip.periodMonth && payslip.periodYear
-                                                ? `${String(payslip.periodMonth).padStart(2, '0')}/${payslip.periodYear}`
-                                                : 'N/A'
-                                            }
-                                            <div className="text-xs text-blue-500 font-medium mt-1">{modelName}</div>
+                                        <td className="px-4 py-4 whitespace-nowrap">
+                                            <div className="flex flex-col gap-1">
+                                                <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                                    {payslip.periodMonth && payslip.periodYear
+                                                        ? `${String(payslip.periodMonth).padStart(2, '0')}/${payslip.periodYear}`
+                                                        : 'Période inconnue'}
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full uppercase tracking-wider ${payslip.processingStatus === 'completed'
+                                                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                        : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                                                        }`}>
+                                                        {payslip.processingStatus === 'completed' ? 'Analysé' : 'À compléter'}
+                                                    </span>
+                                                </div>
+                                            </div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm font-medium">{payslip.employeeName || 'Non renseigné'}</div>
-                                            <div className="text-xs text-gray-500 italic max-w-xs truncate">{payslip.employeeAddress}</div>
-                                            <div className="text-xs text-gray-400 font-bold mt-1">{payslip.employerName}</div>
-                                            {(payslip.siretNumber || payslip.urssafNumber) && (
+                                        <td className="px-4 py-4 whitespace-nowrap">
+                                            <div className="text-sm font-medium">{payslip.employeeName || 'Nom inconnu'}</div>
+                                            <div className="text-xs text-gray-500 italic max-w-xs truncate">{payslip.employeeAddress || 'Adresse non renseignée'}</div>
+                                            <div className="text-xs text-gray-400 font-bold mt-1">{payslip.employerName || 'Entreprise inconnue'}</div>
+                                            {(payslip.siretNumber || payslip.urssafNumber) ? (
                                                 <div className="text-[10px] text-gray-400">
                                                     {payslip.siretNumber && `SIRET: ${payslip.siretNumber}`}
                                                     {payslip.siretNumber && payslip.urssafNumber && ' | '}
                                                     {payslip.urssafNumber && `URSSAF: ${payslip.urssafNumber}`}
                                                 </div>
+                                            ) : (
+                                                <div className="text-[10px] text-amber-500 italic">Infos employeur manquantes</div>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm font-bold text-blue-600 dark:text-blue-400">{payslip.grossSalary.toFixed(2)} € (Brut)</div>
-                                            <div className="text-xs text-gray-500">{payslip.netTaxable.toFixed(2)} € (Impos.)</div>
+                                        <td className="px-4 py-4 whitespace-nowrap">
+                                            <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                                                {payslip.grossSalary > 0 ? `${payslip.grossSalary.toFixed(2)} € (Brut)` : '—'}
+                                            </div>
+                                            <div className="text-xs text-gray-500">
+                                                {payslip.netTaxable > 0 ? `${payslip.netTaxable.toFixed(2)} € (Impos.)` : ''}
+                                            </div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm font-semibold text-green-600">{payslip.netToPay.toFixed(2)} € (Net)</div>
-                                            <div className="text-xs text-gray-500">{payslip.netBeforeTax.toFixed(2)} € (Av. Impôt)</div>
+                                        <td className="px-4 py-4 whitespace-nowrap">
+                                            <div className="text-sm font-semibold text-green-600">
+                                                {payslip.netToPay > 0 ? `${payslip.netToPay.toFixed(2)} € (Net)` : '—'}
+                                            </div>
+                                            <div className="text-xs text-gray-500">
+                                                {payslip.netBeforeTax > 0 ? `${payslip.netBeforeTax.toFixed(2)} € (Av. Impôt)` : ''}
+                                            </div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm">{payslip.hoursWorked.toFixed(2)} h</div>
-                                            <div className="text-xs text-gray-500">{payslip.hourlyNetTaxable.toFixed(2)} €/h (Net Imp.)</div>
+                                        <td className="px-4 py-4 whitespace-nowrap">
+                                            <div className="text-sm">{payslip.hoursWorked > 0 ? `${payslip.hoursWorked.toFixed(2)} h` : '—'}</div>
+                                            <div className="text-xs text-gray-500">
+                                                {payslip.hoursWorked > 0 ? `${(payslip.netToPay / payslip.hoursWorked).toFixed(2)} €/h (Net)` : ''}
+                                            </div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <div className="flex items-center justify-end gap-2">
                                                 <a
                                                     href={payslip.fileUrl}
@@ -320,8 +366,8 @@ function EditModal({
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Employé</label>
                             <input

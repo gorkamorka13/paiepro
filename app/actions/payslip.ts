@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { put } from '@vercel/blob';
 import { prisma } from '@/lib/prisma';
 import type { Payslip } from '@prisma/client';
-import { analyzeDocumentHybrid, extractDataTraditional } from '@/lib/extraction-service';
+import { analyzeDocumentHybrid } from '@/lib/extraction-service';
 import { fileUploadSchema, createPayslipSchema, updatePayslipSchema, type UpdatePayslipData } from '@/lib/validations';
 
 type ActionResult =
@@ -15,9 +15,8 @@ export async function processPayslipAction(
     formData: FormData
 ): Promise<ActionResult> {
     try {
-        // 1. Validation du fichier et des options
+        // 1. Validation du fichier
         const file = formData.get('file') as File;
-        const useAI = formData.get('useAI') === 'true';
 
         const validationResult = fileUploadSchema.safeParse({ file });
         if (!validationResult.success) {
@@ -33,24 +32,18 @@ export async function processPayslipAction(
             addRandomSuffix: true,
         });
 
-        console.log(`✅ Fichier uploadé: ${blob.url}${useAI ? ' (Mode IA)' : ' (Mode Classique)'}`);
+        console.log(`✅ Fichier uploadé: ${blob.url} (Mode Automatique)`);
 
-        // 3. Analyse (IA ou Traditionnelle)
+        // 3. Analyse IA (Automatique)
         let extractedData;
         try {
-            if (useAI) {
-                // Tentative hybride : Trad -> IA si échec
-                extractedData = await analyzeDocumentHybrid(blob.url);
-            } else {
-                // Uniquement traditionnel
-                extractedData = await extractDataTraditional(blob.url);
-                if (!extractedData) {
-                    throw new Error("L'extraction classique n'a pas pu identifier les données clés de ce document. Essayez le mode IA.");
-                }
-            }
+            // Utilise l'analyse intelligente (hybride : Classique -> IA si besoin)
+            extractedData = await analyzeDocumentHybrid(blob.url);
         } catch (aiError) {
+            console.warn(`⚠️ Analyse IA échouée pour ${file.name}:`, aiError);
+
             // Sauvegarder quand même avec statut "failed"
-            await prisma.payslip.create({
+            const payslip = await prisma.payslip.create({
                 data: {
                     fileName: file.name,
                     fileUrl: blob.url,
@@ -66,9 +59,11 @@ export async function processPayslipAction(
                 },
             });
 
+            revalidatePath('/dashboard');
+
             return {
-                success: false,
-                error: `Analyse IA échouée: ${aiError instanceof Error ? aiError.message : 'Erreur inconnue'}`,
+                success: true,
+                data: payslip as any,
             };
         }
 
@@ -97,7 +92,7 @@ export async function processPayslipAction(
 
         return {
             success: true,
-            data: payslip as Payslip,
+            data: payslip as any,
         };
 
     } catch (error) {
@@ -119,9 +114,6 @@ export async function getPayslipsAction() {
                 { periodMonth: 'desc' },
                 { createdAt: 'desc' },
             ],
-            where: {
-                processingStatus: 'completed',
-            },
         });
 
         return { success: true, data: payslips };
