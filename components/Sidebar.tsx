@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { Home, BarChart3, Settings, ChevronLeft, ChevronRight, FileText, Sun, Moon, Menu, X, Users } from 'lucide-react';
+import { Home, BarChart3, Settings, ChevronLeft, ChevronRight, Sun, Moon, Menu, X, Users } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
 import packageInfo from '../package.json';

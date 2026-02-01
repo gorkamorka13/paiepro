@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { UploadZone } from '@/components/UploadZone';
 import { FileText, BarChart3, Zap } from 'lucide-react';
 
@@ -12,7 +13,14 @@ export default function Home() {
                 {/* Header */}
                 <div className="text-center mb-8 md:mb-12">
                     <div className="flex flex-col md:flex-row items-center justify-center gap-3 mb-4">
-                        <img src="/paiepro.png" alt="PaiePro Logo" className="w-12 h-12 md:w-16 md:h-16 object-contain" />
+                        <Image
+                            src="/paiepro.png"
+                            alt="PaiePro Logo"
+                            width={64}
+                            height={64}
+                            className="w-12 h-12 md:w-16 md:h-16 object-contain"
+                            priority
+                        />
                         <h1 className="text-3xl md:text-5xl font-bold text-gray-900 dark:text-white">
                             Payslip Analyzer AI
                         </h1>
