@@ -35,14 +35,14 @@ export function ExportButton({ payslips }: ExportButtonProps) {
             // Tableau
             autoTable(doc, {
                 startY: 35,
-                head: [['Période', 'Employé', 'Net à Payer', 'Salaire Brut', 'Cotisations', 'Heures']],
+                head: [['Période', 'Employé', 'Salaire Brut', 'Net à Payer', 'Cotisations', 'Heures']],
                 body: payslips.map(p => [
                     p.periodMonth && p.periodYear
                         ? `${String(p.periodMonth).padStart(2, '0')}/${p.periodYear}`
                         : 'N/A',
                     p.employeeName || 'N/A',
-                    `${p.netToPay.toFixed(2)} €`,
                     `${p.grossSalary.toFixed(2)} €`,
+                    `${p.netToPay.toFixed(2)} €`,
                     `${p.taxAmount.toFixed(2)} €`,
                     `${p.hoursWorked.toFixed(2)}h`,
                 ]),
@@ -53,13 +53,17 @@ export function ExportButton({ payslips }: ExportButtonProps) {
 
             // Statistiques
             const totalNet = payslips.reduce((sum, p) => sum + p.netToPay, 0);
+            const totalGross = payslips.reduce((sum, p) => sum + p.grossSalary, 0);
             const avgNet = totalNet / payslips.length;
+            const avgGross = totalGross / payslips.length;
 
-            const finalY = (doc as any).lastAutoTable.finalY + 10;
+            const finalY = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
             doc.setFontSize(10);
             doc.text(`Total bulletins: ${payslips.length}`, 14, finalY);
-            doc.text(`Net moyen: ${avgNet.toFixed(2)} €`, 14, finalY + 6);
+            doc.text(`Brut total: ${totalGross.toFixed(2)} €`, 14, finalY + 6);
             doc.text(`Net total: ${totalNet.toFixed(2)} €`, 14, finalY + 12);
+            doc.text(`Brut moyen: ${avgGross.toFixed(2)} €`, 100, finalY + 6);
+            doc.text(`Net moyen: ${avgNet.toFixed(2)} €`, 100, finalY + 12);
 
             // Téléchargement
             doc.save(`bulletins-paie-${new Date().toISOString().slice(0, 10)}.pdf`);

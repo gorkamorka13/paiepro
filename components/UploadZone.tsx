@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, FileText, Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { Upload, FileText, Loader2, CheckCircle2, XCircle, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { processPayslipAction } from '@/app/actions/payslip';
 
@@ -14,44 +14,51 @@ type FileStatus = {
     id?: string;
 };
 
-export function UploadZone() {
+export function UploadZone({ useAI = true }: { useAI?: boolean }) {
     const [files, setFiles] = useState<FileStatus[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
 
-    const onDrop = useCallback(async (acceptedFiles: File[]) => {
-        // Initialiser les fichiers avec statut "pending"
+    const onDrop = useCallback((acceptedFiles: File[]) => {
         const newFiles: FileStatus[] = acceptedFiles.map(file => ({
             file,
             status: 'pending',
             progress: 0,
         }));
-
         setFiles(prev => [...prev, ...newFiles]);
+    }, []);
+
+    const startProcessing = async () => {
+        if (isProcessing) return;
+
+        const filesToProcess = files.filter(f => f.status === 'pending');
+        if (filesToProcess.length === 0) {
+            toast.error('Aucun fichier à analyser');
+            return;
+        }
+
         setIsProcessing(true);
 
-        // Traiter chaque fichier séquentiellement
-        for (let i = 0; i < acceptedFiles.length; i++) {
-            const file = acceptedFiles[i];
-            const fileIndex = files.length + i;
+        for (const fileStatus of filesToProcess) {
+            const index = files.findIndex(f => f === fileStatus);
 
             try {
-                // Mise à jour: uploading
                 setFiles(prev => {
                     const updated = [...prev];
-                    updated[fileIndex] = { ...updated[fileIndex], status: 'uploading', progress: 50 };
+                    updated[index] = { ...updated[index], status: 'uploading', progress: 50 };
                     return updated;
                 });
 
                 const formData = new FormData();
-                formData.append('file', file);
+                formData.append('file', fileStatus.file);
+                formData.append('useAI', useAI.toString());
 
                 const result = await processPayslipAction(formData);
 
                 if (result.success) {
                     setFiles(prev => {
                         const updated = [...prev];
-                        updated[fileIndex] = {
-                            ...updated[fileIndex],
+                        updated[index] = {
+                            ...updated[index],
                             status: 'success',
                             progress: 100,
                             id: result.data.id,
@@ -59,31 +66,22 @@ export function UploadZone() {
                         return updated;
                     });
 
-                    toast.success(`✅ ${file.name} analysé avec succès`);
+                    toast.success(`${fileStatus.file.name} analysé`);
                 } else {
                     throw new Error(result.error);
                 }
-
             } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
-
+                const errorMessage = error instanceof Error ? error.message : 'Erreur';
                 setFiles(prev => {
                     const updated = [...prev];
-                    updated[fileIndex] = {
-                        ...updated[fileIndex],
-                        status: 'error',
-                        progress: 0,
-                        error: errorMessage,
-                    };
+                    updated[index] = { ...updated[index], status: 'error', error: errorMessage };
                     return updated;
                 });
-
-                toast.error(`❌ ${file.name}: ${errorMessage}`);
+                toast.error(`${fileStatus.file.name}: ${errorMessage}`);
             }
         }
-
         setIsProcessing(false);
-    }, [files.length]);
+    };
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
@@ -92,7 +90,7 @@ export function UploadZone() {
             'image/jpeg': ['.jpg', '.jpeg'],
             'image/png': ['.png'],
         },
-        maxSize: 10 * 1024 * 1024, // 10MB
+        maxSize: 10 * 1024 * 1024,
         disabled: isProcessing,
     });
 
@@ -137,19 +135,48 @@ export function UploadZone() {
 
             {/* Liste des fichiers */}
             {files.length > 0 && (
-                <div className="space-y-3">
+                <div className="space-y-4">
                     <div className="flex justify-between items-center">
-                        <h3 className="text-lg font-semibold">
-                            Fichiers ({files.length})
-                        </h3>
-                        {files.some(f => f.status === 'success') && (
+                        <div className="flex items-center gap-4">
+                            <h3 className="text-lg font-semibold">
+                                Fichiers ({files.length})
+                            </h3>
+                            {files.some(f => f.status === 'pending') && (
+                                <button
+                                    onClick={startProcessing}
+                                    disabled={isProcessing}
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg active:scale-95"
+                                >
+                                    {isProcessing ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Analyse en cours...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Zap className="w-4 h-4" />
+                                            Lancer l&apos;Analyse
+                                        </>
+                                    )}
+                                </button>
+                            )}
+                        </div>
+                        <div className="flex gap-3">
+                            {files.some(f => f.status === 'success') && (
+                                <button
+                                    onClick={clearCompleted}
+                                    className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                                >
+                                    Effacer les réussis
+                                </button>
+                            )}
                             <button
-                                onClick={clearCompleted}
-                                className="text-sm text-gray-500 hover:text-gray-700"
+                                onClick={() => setFiles([])}
+                                className="text-sm text-red-500 hover:text-red-600"
                             >
-                                Effacer les réussis
+                                Tout Effacer
                             </button>
-                        )}
+                        </div>
                     </div>
 
                     <div className="space-y-2">

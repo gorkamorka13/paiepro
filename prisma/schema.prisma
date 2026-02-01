@@ -8,33 +8,40 @@ datasource db {
 }
 
 model Payslip {
-  id            String   @id @default(cuid())
-  fileName      String
-  fileUrl       String
-  fileSize      Int      // en bytes
-  mimeType      String
+  id               String   @id @default(cuid())
   
-  // Données extraites
-  employeeName  String?
-  employerName  String?
-  periodMonth   Int?     @db.SmallInt // 1-12
-  periodYear    Int?     @db.SmallInt // ex: 2024
+  // Fichiers
+  fileUrl          String
+  fileName         String
+  fileSize         Int
+  mimeType         String
   
-  // Montants
-  netToPay      Float    @db.DoublePrecision
-  grossSalary   Float    @db.DoublePrecision
-  taxAmount     Float    @db.DoublePrecision
-  hoursWorked   Float    @db.DoublePrecision
+  // Période et Employé
+  periodMonth      Int?
+  periodYear       Int?
+  employeeName     String?
+  employeeAddress  String?
+  employerName     String?
+  siretNumber      String?
+  urssafNumber     String?
   
-  // JSON brut de l'extraction
-  extractedJson Json
+  // Montants Extraits
+  netToPay         Float    @db.DoublePrecision // Net à payer après impôts
+  netBeforeTax     Float    @db.DoublePrecision @default(0) // Net à payer avant impôts
+  netTaxable       Float    @db.DoublePrecision @default(0) // Net imposable
+  grossSalary      Float    @db.DoublePrecision // Salaire brut
+  taxAmount        Float    @db.DoublePrecision // Montant des impôts
+  hoursWorked      Float    @db.DoublePrecision // Heures travaillées
+  hourlyNetTaxable Float    @db.DoublePrecision @default(0) // Salaire horaire net imposable
   
   // Métadonnées
-  processingStatus String  @default("completed") // completed | failed | processing
+  extractedJson    Json
+  processingStatus String   @default("completed") // completed | failed | processing
   errorMessage     String?
+  aiModel          String?
   
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
   
   @@index([periodYear, periodMonth])
   @@index([createdAt])

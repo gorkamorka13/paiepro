@@ -3,8 +3,9 @@
 import { revalidatePath } from 'next/cache';
 import { put } from '@vercel/blob';
 import { prisma } from '@/lib/prisma';
-import { analyzeDocumentWithRetry } from '@/lib/ai-service';
-import { fileUploadSchema, createPayslipSchema } from '@/lib/validations';
+import type { Payslip } from '@prisma/client';
+import { analyzeDocumentHybrid, extractDataTraditional } from '@/lib/extraction-service';
+import { fileUploadSchema, createPayslipSchema, updatePayslipSchema, type UpdatePayslipData } from '@/lib/validations';
 
 type ActionResult =
     | { success: true; data: { id: string; fileName: string } }
@@ -14,8 +15,9 @@ export async function processPayslipAction(
     formData: FormData
 ): Promise<ActionResult> {
     try {
-        // 1. Validation du fichier
+        // 1. Validation du fichier et des options
         const file = formData.get('file') as File;
+        const useAI = formData.get('useAI') === 'true';
 
         const validationResult = fileUploadSchema.safeParse({ file });
         if (!validationResult.success) {
@@ -31,12 +33,21 @@ export async function processPayslipAction(
             addRandomSuffix: true,
         });
 
-        console.log(`✅ Fichier uploadé: ${blob.url}`);
+        console.log(`✅ Fichier uploadé: ${blob.url}${useAI ? ' (Mode IA)' : ' (Mode Classique)'}`);
 
-        // 3. Analyse IA avec retry
+        // 3. Analyse (IA ou Traditionnelle)
         let extractedData;
         try {
-            extractedData = await analyzeDocumentWithRetry(blob.url);
+            if (useAI) {
+                // Tentative hybride : Trad -> IA si échec
+                extractedData = await analyzeDocumentHybrid(blob.url);
+            } else {
+                // Uniquement traditionnel
+                extractedData = await extractDataTraditional(blob.url);
+                if (!extractedData) {
+                    throw new Error("L'extraction classique n'a pas pu identifier les données clés de ce document. Essayez le mode IA.");
+                }
+            }
         } catch (aiError) {
             // Sauvegarder quand même avec statut "failed"
             await prisma.payslip.create({
@@ -86,10 +97,7 @@ export async function processPayslipAction(
 
         return {
             success: true,
-            data: {
-                id: payslip.id,
-                fileName: payslip.fileName,
-            },
+            data: payslip as Payslip,
         };
 
     } catch (error) {
@@ -142,6 +150,31 @@ export async function deletePayslipAction(id: string): Promise<ActionResult> {
         return {
             success: false,
             error: 'Impossible de supprimer le bulletin'
+        };
+    }
+}
+
+// Action pour mettre à jour un bulletin
+export async function updatePayslipAction(
+    id: string,
+    data: UpdatePayslipData
+): Promise<ActionResult> {
+    try {
+        const validatedData = updatePayslipSchema.parse(data);
+
+        await prisma.payslip.update({
+            where: { id },
+            data: validatedData,
+        });
+
+        revalidatePath('/dashboard');
+
+        return { success: true, data: { id, fileName: '' } };
+    } catch (error) {
+        console.error('❌ Erreur lors de la mise à jour:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Erreur lors de la mise à jour'
         };
     }
 }

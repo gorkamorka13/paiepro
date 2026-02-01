@@ -16,10 +16,17 @@ export const aiExtractedDataSchema = z.object({
     employerName: z.string().min(1).max(255).optional(),
     periodMonth: z.number().int().min(1).max(12).optional(),
     periodYear: z.number().int().min(2000).max(2100).optional(),
-    netToPay: z.number().nonnegative(),
-    grossSalary: z.number().nonnegative(),
-    taxAmount: z.number().nonnegative(),
-    hoursWorked: z.number().nonnegative().max(744), // max heures/mois
+    netToPay: z.number().nonnegative(), // Net à payer (après impôts)
+    netBeforeTax: z.number().nonnegative(), // Net à payer avant impôts
+    netTaxable: z.number().nonnegative(), // Net imposable
+    grossSalary: z.number().nonnegative(), // Salaire brut
+    taxAmount: z.number().nonnegative(), // Montant des impôts
+    hoursWorked: z.number().nonnegative().max(744), // Heures travaillées
+    hourlyNetTaxable: z.number().nonnegative(), // Salaire horaire net imposable
+    employeeAddress: z.string().optional(),
+    siretNumber: z.string().optional(),
+    urssafNumber: z.string().optional(),
+    aiModel: z.string().optional(),
 });
 
 export type AIExtractedData = z.infer<typeof aiExtractedDataSchema>;
@@ -33,3 +40,23 @@ export const createPayslipSchema = z.object({
     ...aiExtractedDataSchema.shape,
     extractedJson: z.record(z.any()),
 });
+
+// Validation mise à jour Payslip (coercion pour les formulaires)
+export const updatePayslipSchema = z.object({
+    employeeName: z.string().min(1).max(255).optional().nullable(),
+    employerName: z.string().min(1).max(255).optional().nullable(),
+    periodMonth: z.coerce.number().int().min(1).max(12).optional().nullable(),
+    periodYear: z.coerce.number().int().min(2000).max(2100).optional().nullable(),
+    netToPay: z.coerce.number().nonnegative(),
+    netBeforeTax: z.coerce.number().nonnegative().optional(),
+    netTaxable: z.coerce.number().nonnegative().optional(),
+    grossSalary: z.coerce.number().nonnegative(),
+    taxAmount: z.coerce.number().nonnegative().optional(),
+    hoursWorked: z.coerce.number().nonnegative().max(744).optional(),
+    hourlyNetTaxable: z.coerce.number().nonnegative().optional(),
+    employeeAddress: z.string().optional().nullable(),
+    siretNumber: z.string().optional().nullable(),
+    urssafNumber: z.string().optional().nullable(),
+});
+
+export type UpdatePayslipData = z.infer<typeof updatePayslipSchema>;
