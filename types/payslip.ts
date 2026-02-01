@@ -27,6 +27,18 @@ export interface Payslip {
     updatedAt: Date;
 }
 
+export interface Company {
+    id: string;
+    name: string;
+    siret: string | null;
+    urssaf: string | null;
+    _count?: {
+        payslips: number;
+    };
+    createdAt: Date;
+    updatedAt: Date;
+}
+
 export interface ExtractedPayslipData {
     employeeName: string | null;
     employeeAddress: string | null;

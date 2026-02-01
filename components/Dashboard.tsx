@@ -1,17 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { getPayslipsAction, deletePayslipAction, updatePayslipAction, getCompaniesAction } from '@/app/actions/payslip';
 import { Trash2, ExternalLink, Users, Edit2, X, Save, FileSpreadsheet, FileText } from 'lucide-react';
 import { toast } from 'sonner';
-import type { Payslip, UpdatePayslipData } from '@/types/payslip';
+import type { Payslip, UpdatePayslipData, Company } from '@/types/payslip';
 import { exportToExcel, exportToPDF } from '@/lib/export-utils';
-import useSWR, { mutate } from 'swr';
+import useSWR from 'swr';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
 
-const fetcher = async ([key, companyId]: [string, string | undefined]) => {
+const fetcher = async ([, companyId]: [string, string | undefined]) => {
     const result = await getPayslipsAction(companyId);
     if (!result.success) throw new Error(result.error);
     return result.data || [];
@@ -91,7 +91,7 @@ export function Dashboard() {
                         className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
                     >
                         <option value="">Tous les clients</option>
-                        {companies.map((c: any) => (
+                        {companies.map((c: Company) => (
                             <option key={c.id} value={c.id}>{c.name}</option>
                         ))}
                     </select>

@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { Home, BarChart3, Settings, HelpCircle, ChevronLeft, ChevronRight, FileText, Sun, Moon, Menu, X, Users } from 'lucide-react';
+import { Home, BarChart3, Settings, ChevronLeft, ChevronRight, FileText, Sun, Moon, Menu, X, Users } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
 import packageInfo from '../package.json';
 import useSWR from 'swr';
 import { getCompaniesAction } from '@/app/actions/payslip';
+import type { Company } from '@/types/payslip';
 
 export function Sidebar() {
     const pathname = usePathname();
@@ -105,7 +106,7 @@ export function Sidebar() {
                     )}
 
                     <div className="space-y-1">
-                        {companies.map((company: any) => (
+                        {companies.map((company: Company) => (
                             <Link
                                 key={company.id}
                                 href={`/dashboard?companyId=${company.id}`}

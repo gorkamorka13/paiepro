@@ -8,7 +8,7 @@ import type { Payslip } from '@prisma/client';
 // Extend jsPDF with autotable types
 declare module 'jspdf' {
     interface jsPDF {
-        autoTable: (options: any) => jsPDF;
+        autoTable: (options: Record<string, unknown>) => jsPDF;
     }
 }
 

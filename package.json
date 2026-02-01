@@ -1,6 +1,6 @@
 {
   "name": "payslip-analyzer-ai",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
@@ -47,7 +47,7 @@
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.0.0",
-    "eslint-config-next": "15.1.0",
+    "eslint-config-next": "15.1.6",
     "postcss": "^8.4.49",
     "prettier": "^3.3.3",
     "prisma": "^6.0.0",

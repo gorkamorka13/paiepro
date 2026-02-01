@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { UploadZone } from '@/components/UploadZone';
-import { FileText, BarChart3, Bot, Zap, Settings2 } from 'lucide-react';
+import { FileText, BarChart3, Zap } from 'lucide-react';
 
 export default function Home() {
 
