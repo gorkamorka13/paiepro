@@ -1,15 +1,21 @@
 'use client';
 
 import { useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import dynamic from 'next/dynamic';
 import { getPayslipsAction, deletePayslipAction, updatePayslipAction } from '@/app/actions/payslip';
 import { Trash2, ExternalLink, Users, Edit2, X, Save, FileSpreadsheet, FileText, ArrowUp, ArrowDown } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Payslip, UpdatePayslipData } from '@/types/payslip';
-// import { exportToExcel, exportToPDF } from '@/lib/export-utils';
 import useSWR from 'swr';
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
+const ClientChart = dynamic(() => import('./ClientChart').then(mod => mod.ClientChart), {
+    ssr: false,
+    loading: () => (
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700 h-[400px] flex items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+        </div>
+    ),
+});
 
 export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[] }) {
     const { data: payslips = [], error, isLoading, mutate: revalidate } = useSWR<Payslip[]>('payslips', async () => {
@@ -346,46 +352,7 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
             </div>
 
             {/* Répartition par Client */}
-            {
-                clientData.length > 0 && (
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-                        <div className="flex items-center gap-2 mb-6">
-                            <Users className="w-5 h-5 text-blue-600" />
-                            <h2 className="text-xl font-semibold">Répartition par Employeur (Cumul Net)</h2>
-                        </div>
-
-                        <div className="h-[300px] md:h-[400px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={clientData} margin={{ top: 20, right: 10, left: -10, bottom: 60 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                    <XAxis
-                                        dataKey="name"
-                                        interval={0}
-                                        angle={-45}
-                                        textAnchor="end"
-                                        tick={{ fontSize: 10 }}
-                                        height={80}
-                                    />
-                                    <YAxis
-                                        tickFormatter={(value) => `${value} €`}
-                                        tick={{ fontSize: 10 }}
-                                    />
-                                    <Tooltip
-                                        formatter={(value: number) => `${value.toFixed(2)} €`}
-                                        labelStyle={{ color: '#000' }}
-                                        cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }}
-                                    />
-                                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                                        {clientData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                        ))}
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </div>
-                )
-            }
+            <ClientChart clientData={clientData} />
 
             {/* Modal d'édition */}
             {
