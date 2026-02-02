@@ -89,7 +89,7 @@ export async function extractDataTraditional(fileUrl: string): Promise<AIExtract
 /**
  * Service hybride : Tente le traditionnel, sinon passe à l'IA
  */
-export async function analyzeDocumentHybrid(fileUrl: string): Promise<AIExtractedData & { aiModel: string }> {
+export async function analyzeDocumentHybrid(fileUrl: string): Promise<AIExtractedData & { aiModel: string; inputTokens?: number; outputTokens?: number }> {
     console.log('⚙️ Tentative d\'extraction traditionnelle...');
     const traditionalResult = await extractDataTraditional(fileUrl);
 

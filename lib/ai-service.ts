@@ -30,8 +30,10 @@ RÈGLES STRICTES :
 - Les montants doivent être des nombres décimaux, pas des strings
 - Si une donnée est absente ou illisible, mets null`;
 
-export async function analyzeDocument(fileUrl: string): Promise<AIExtractedData & { aiModel: string }> {
+export async function analyzeDocument(fileUrl: string): Promise<AIExtractedData & { aiModel: string; inputTokens?: number; outputTokens?: number }> {
     const modelId = 'gemini-2.5-flash';
+
+    // ... (téléchargement et config)
 
     // Télécharger le fichier
     const response = await fetch(fileUrl);
@@ -87,6 +89,8 @@ export async function analyzeDocument(fileUrl: string): Promise<AIExtractedData 
         return {
             ...validated,
             aiModel: modelId,
+            inputTokens: result.response.usageMetadata?.promptTokenCount,
+            outputTokens: result.response.usageMetadata?.candidatesTokenCount,
         };
 
     } catch (error) {

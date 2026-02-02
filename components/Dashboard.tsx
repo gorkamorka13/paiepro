@@ -2,26 +2,19 @@
 
 import { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { getPayslipsAction, deletePayslipAction, updatePayslipAction, getCompaniesAction } from '@/app/actions/payslip';
+import { getPayslipsAction, deletePayslipAction, updatePayslipAction } from '@/app/actions/payslip';
 import { Trash2, ExternalLink, Users, Edit2, X, Save, FileSpreadsheet, FileText } from 'lucide-react';
 import { toast } from 'sonner';
-import type { Payslip, UpdatePayslipData, Company } from '@/types/payslip';
+import type { Payslip, UpdatePayslipData } from '@/types/payslip';
 import { exportToExcel, exportToPDF } from '@/lib/export-utils';
 import useSWR from 'swr';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
 
-const fetcher = async ([, companyId]: [string, string | undefined]) => {
-    const result = await getPayslipsAction(companyId);
-    if (!result.success) throw new Error(result.error);
-    return result.data || [];
-};
-
 export function Dashboard() {
-    const [selectedCompanyId, setSelectedCompanyId] = useState<string | undefined>(undefined);
-    const { data: payslips = [], error, isLoading, mutate: revalidate } = useSWR<Payslip[]>(['payslips', selectedCompanyId], fetcher);
-    const { data: companies = [] } = useSWR('companies', async () => {
-        const result = await getCompaniesAction();
+    const { data: payslips = [], error, isLoading, mutate: revalidate } = useSWR<Payslip[]>('payslips', async () => {
+        const result = await getPayslipsAction();
+        if (!result.success) throw new Error(result.error);
         return result.data || [];
     });
     const [editingPayslip, setEditingPayslip] = useState<Payslip | null>(null);
@@ -84,18 +77,6 @@ export function Dashboard() {
                 </div>
             </div>
             <div className="flex gap-3 items-center">
-                {companies.length > 0 && (
-                    <select
-                        value={selectedCompanyId || ''}
-                        onChange={(e) => setSelectedCompanyId(e.target.value || undefined)}
-                        className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                        <option value="">Tous les clients</option>
-                        {companies.map((c: Company) => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                    </select>
-                )}
                 <button
                     onClick={() => exportToExcel(payslips)}
                     className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors shadow-sm"
@@ -154,7 +135,7 @@ export function Dashboard() {
                     <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
                         <div className="flex items-center gap-2 mb-6">
                             <Users className="w-5 h-5 text-blue-600" />
-                            <h2 className="text-xl font-semibold">Répartition par Client (Cumul Net)</h2>
+                            <h2 className="text-xl font-semibold">Répartition par Employeur (Cumul Net)</h2>
                         </div>
 
                         <div className="h-[300px] md:h-[400px]">

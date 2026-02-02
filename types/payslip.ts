@@ -22,19 +22,8 @@ export interface Payslip {
     processingStatus: string;
     errorMessage: string | null;
     aiModel: string | null;
-    companyId: string | null;
-    createdAt: Date;
-    updatedAt: Date;
-}
-
-export interface Company {
-    id: string;
-    name: string;
-    siret: string | null;
-    urssaf: string | null;
-    _count?: {
-        payslips: number;
-    };
+    inputTokens: number | null;
+    outputTokens: number | null;
     createdAt: Date;
     updatedAt: Date;
 }

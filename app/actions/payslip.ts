@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { put } from '@vercel/blob';
+import { put, del } from '@vercel/blob';
 import { prisma } from '@/lib/prisma';
 import type { Payslip, UpdatePayslipData } from '@/types/payslip';
 import { analyzeDocumentHybrid } from '@/lib/extraction-service';
@@ -75,30 +75,32 @@ export async function processPayslipAction(
             extractedJson: extractedData,
         });
 
-        // 5. Sauvegarde en base de données
-        // Trouver ou créer l'entreprise
-        let companyId = null;
-        if (extractedData.employerName) {
-            const company = await prisma.company.upsert({
-                where: { name: extractedData.employerName },
-                update: {
-                    siret: extractedData.siretNumber || undefined,
-                    urssaf: extractedData.urssafNumber || undefined
-                },
-                create: {
-                    name: extractedData.employerName,
-                    siret: extractedData.siretNumber,
-                    urssaf: extractedData.urssafNumber
-                }
-            });
-            companyId = company.id;
+        // 4b. Détection des doublons
+        const duplicate = await prisma.payslip.findFirst({
+            where: {
+                employeeName: payslipData.employeeName,
+                employerName: payslipData.employerName,
+                periodMonth: payslipData.periodMonth,
+                periodYear: payslipData.periodYear,
+                netToPay: payslipData.netToPay,
+            },
+        });
+
+        if (duplicate) {
+            console.warn(`⚠️ Doublon détecté pour ${file.name}. Suppression du blob.`);
+            await del(blob.url);
+            return {
+                success: false,
+                error: "Ce bulletin a déjà été importé (Doublon détecté).",
+            };
         }
 
         const payslip = await prisma.payslip.create({
             data: {
                 ...payslipData,
-                companyId,
                 processingStatus: 'completed',
+                inputTokens: extractedData.inputTokens,
+                outputTokens: extractedData.outputTokens,
             },
         });
 
@@ -122,11 +124,10 @@ export async function processPayslipAction(
     }
 }
 
-// Action pour récupérer tous les bulletins (optionnellement par entreprise)
-export async function getPayslipsAction(companyId?: string): Promise<ActionResult<Payslip[]>> {
+// Action pour récupérer tous les bulletins
+export async function getPayslipsAction(): Promise<ActionResult<Payslip[]>> {
     try {
         const payslips = await prisma.payslip.findMany({
-            where: companyId ? { companyId } : {},
             orderBy: [
                 { periodYear: 'desc' },
                 { periodMonth: 'desc' },
@@ -189,20 +190,37 @@ export async function updatePayslipAction(
     }
 }
 
-// Action pour récupérer les entreprises
-export async function getCompaniesAction() {
+// Action pour récupérer les statistiques d'utilisation
+export async function getUsageStatsAction() {
     try {
-        const companies = await prisma.company.findMany({
-            orderBy: { name: 'asc' },
-            include: {
-                _count: {
-                    select: { payslips: true }
-                }
+        const stats = await prisma.payslip.aggregate({
+            _sum: {
+                fileSize: true,
+                inputTokens: true,
+                outputTokens: true,
+            },
+            _count: {
+                id: true,
             }
         });
-        return { success: true, data: companies };
+
+        const totalStorageBytes = stats._sum.fileSize || 0;
+        const totalTokens = (stats._sum.inputTokens || 0) + (stats._sum.outputTokens || 0);
+        const limitBytes = 250 * 1024 * 1024; // 250MB
+
+        return {
+            success: true,
+            data: {
+                totalStorageBytes,
+                totalTokens,
+                limitBytes,
+                fileCount: stats._count.id
+            }
+        };
     } catch (error) {
-        console.error('❌ Erreur lors de la récupération des entreprises:', error);
-        return { success: false, error: 'Impossible de récupérer les entreprises' };
+        console.error('❌ Erreur lors du calcul des stats:', error);
+        return { success: false, error: 'Impossible de calculer les statistiques' };
     }
 }
+
+
