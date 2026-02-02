@@ -1,16 +1,7 @@
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
-import dynamic from 'next/dynamic';
+import DashboardClient from '@/components/DashboardClient';
 import { getPayslipsAction } from '@/app/actions/payslip';
-
-const DashboardWrapper = dynamic(() => import('@/components/DashboardWrapper'), {
-    ssr: false,
-    loading: () => (
-        <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
-        </div>
-    ),
-});
 
 export default async function DashboardPage() {
     // Pre-fetch data on the server
@@ -77,7 +68,7 @@ export default async function DashboardPage() {
                 </div>
 
                 {/* Dashboard Component */}
-                <DashboardWrapper initialPayslips={initialPayslips} />
+                <DashboardClient initialPayslips={initialPayslips} />
             </div>
         </div>
     );
