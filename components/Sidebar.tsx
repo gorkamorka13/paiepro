@@ -58,13 +58,13 @@ export function Sidebar() {
             >
                 <div className="p-6 flex items-center justify-between gap-2">
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        <div className="w-12 h-12 bg-transparent rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
                             <Image
                                 src="/paiepro.png"
                                 alt="PaiePro Logo"
-                                width={32}
-                                height={32}
-                                className="w-full h-full object-contain p-1"
+                                width={40}
+                                height={40}
+                                className="w-full h-full object-contain"
                             />
                         </div>
                         <span className="font-bold text-xl tracking-tight text-gray-900 dark:text-white truncate">

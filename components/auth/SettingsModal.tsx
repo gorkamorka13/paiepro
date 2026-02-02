@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Save, Lock, User } from 'lucide-react';
+import { X, Save, Lock, User, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { updateUserAction } from '@/app/actions/user';
 import { useSession } from 'next-auth/react';
@@ -15,6 +15,8 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
     const [name, setName] = useState(session?.user?.name || '');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -78,13 +80,22 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                                     <Lock className="w-4 h-4" />
                                     Nouveau mot de passe
                                 </label>
-                                <input
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                                    placeholder="Laisser vide pour ne pas changer"
-                                />
+                                <div className="relative">
+                                    <input
+                                        type={showPassword ? "text" : "password"}
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none transition-all pr-10"
+                                        placeholder="Laisser vide pour ne pas changer"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                                    >
+                                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                    </button>
+                                </div>
                             </div>
 
                             {password && (
@@ -92,17 +103,26 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                                     <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                                         Confirmer le mot de passe
                                     </label>
-                                    <input
-                                        type="password"
-                                        value={confirmPassword}
-                                        onChange={(e) => setConfirmPassword(e.target.value)}
-                                        className={`w-full px-4 py-2 rounded-lg border bg-white dark:bg-gray-900 focus:ring-2 outline-none transition-all ${
-                                            confirmPassword && password !== confirmPassword
-                                                ? 'border-red-500 focus:ring-red-500'
-                                                : 'border-gray-200 dark:border-gray-700 focus:ring-blue-500'
-                                        }`}
-                                        placeholder="Répétez le mot de passe"
-                                    />
+                                    <div className="relative">
+                                        <input
+                                            type={showConfirmPassword ? "text" : "password"}
+                                            value={confirmPassword}
+                                            onChange={(e) => setConfirmPassword(e.target.value)}
+                                            className={`w-full px-4 py-2 rounded-lg border bg-white dark:bg-gray-900 focus:ring-2 outline-none transition-all pr-10 ${
+                                                confirmPassword && password !== confirmPassword
+                                                    ? 'border-red-500 focus:ring-red-500'
+                                                    : 'border-gray-200 dark:border-gray-700 focus:ring-blue-500'
+                                            }`}
+                                            placeholder="Répétez le mot de passe"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                                        >
+                                            {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </div>

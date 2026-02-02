@@ -89,6 +89,11 @@ export function Dashboard() {
         exportToPDF(dataToExport);
     };
 
+    // Data used for statistics (all or selection)
+    const statsData = selectedPayslips.size > 0
+        ? payslips.filter(p => selectedPayslips.has(p.id))
+        : payslips;
+
     // Préparer les données pour la répartition par client
     const clientDataMap = payslips.reduce((acc, p) => {
         const employer = p.employerName || 'Non identifié';
@@ -128,12 +133,7 @@ export function Dashboard() {
 
     return (
         <div className="space-y-8">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Tableau de Bord</h1>
-                    <p className="text-gray-500 dark:text-gray-400">Gérez et analysez vos bulletins de paie centralisés.</p>
-                </div>
-            </div>
+
             <div className="flex gap-3 items-center">
                 <button
                     onClick={handleExportExcel}
@@ -155,41 +155,41 @@ export function Dashboard() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6">
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
                     <p className="text-sm text-gray-500 mb-1">Total Bulletins</p>
-                    <p className="text-3xl font-bold">{payslips.length}</p>
+                    <p className="text-3xl font-bold">{statsData.length}</p>
                 </div>
 
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700 font-medium">
                     <p className="text-sm text-blue-600 dark:text-blue-400 mb-1">Total Brut</p>
                     <p className="text-2xl md:text-3xl font-bold">
-                        {payslips.reduce((sum, p) => sum + Math.trunc(p.grossSalary), 0).toFixed(2)} €
+                        {statsData.reduce((sum, p) => sum + Math.trunc(p.grossSalary), 0).toFixed(2)} €
                     </p>
                 </div>
 
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
                     <p className="text-sm text-gray-500 mb-1">Total Net à Payer</p>
                     <p className="text-2xl md:text-3xl font-bold">
-                        {payslips.reduce((sum, p) => sum + p.netToPay, 0).toFixed(2)} €
+                        {statsData.reduce((sum, p) => sum + p.netToPay, 0).toFixed(2)} €
                     </p>
                 </div>
 
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
                     <p className="text-sm text-gray-500 mb-1">Total Net Avant Impôts</p>
                     <p className="text-2xl md:text-3xl font-bold">
-                        {payslips.reduce((sum, p) => sum + p.netBeforeTax, 0).toFixed(2)} €
+                        {statsData.reduce((sum, p) => sum + p.netBeforeTax, 0).toFixed(2)} €
                     </p>
                 </div>
 
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
                     <p className="text-sm text-gray-500 mb-1">Total Heures</p>
                     <p className="text-2xl md:text-3xl font-bold">
-                        {payslips.reduce((sum, p) => sum + p.hoursWorked, 0).toFixed(2)} h
+                        {statsData.reduce((sum, p) => sum + p.hoursWorked, 0).toFixed(2)} h
                     </p>
                 </div>
             </div>
 
             {/* Tableau des bulletins */}
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto max-h-[450px] overflow-y-auto custom-scrollbar">
                     <table className="w-full">
                         <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
                             <tr>
@@ -445,206 +445,216 @@ function EditModal({
         }));
     };
 
+    const InputField = ({ label, name, type = "text", value, placeholder, className, readOnly = false, step, min, max }: any) => (
+        <div className={`space-y-1.5 ${className}`}>
+            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-1">{label}</label>
+            <input
+                type={type}
+                name={name}
+                value={value}
+                onChange={handleChange}
+                step={step || (type === 'number' ? "0.01" : undefined)}
+                min={min}
+                max={max}
+                readOnly={readOnly}
+                placeholder={placeholder}
+                className={`w-full px-4 py-2.5 rounded-xl border-0 ring-1 ring-gray-200 dark:ring-gray-700 bg-gray-50/50 dark:bg-gray-800/50 text-sm transition-all
+                    ${readOnly
+                        ? 'opacity-60 cursor-not-allowed italic'
+                        : 'hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-blue-500/20 focus:scale-[1.01] shadow-sm'
+                    }
+                    ${type === 'number' ? 'text-right font-medium font-mono' : ''}
+                `}
+            />
+        </div>
+    );
+
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-                <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col border border-gray-100 dark:border-gray-800">
+                {/* Header */}
+                <div className="px-8 py-5 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-white dark:bg-gray-900/95 backdrop-blur z-10">
                     <div>
-                        <h3 className="text-xl font-bold">Modifier les données</h3>
-                        <p className="text-sm text-gray-500">{payslip.fileName}</p>
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Modifier le bulletin</h3>
+                        <div className="flex items-center gap-2 mt-1">
+                            <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+                                <FileText className="w-3 h-3" />
+                            </span>
+                            <p className="text-xs text-gray-500 font-medium truncate max-w-[300px]" title={payslip.fileName}>
+                                {payslip.fileName}
+                            </p>
+                        </div>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors">
-                        <X className="w-5 h-5" />
+                    <button
+                        onClick={onClose}
+                        className="group p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-all duration-200"
+                    >
+                        <X className="w-6 h-6 group-hover:rotate-90 transition-transform duration-300" />
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto max-h-[60vh] pr-2 custom-scrollbar">
-                    <div className="grid grid-cols-12 gap-3">
-                        {/* Identité - Ligne 1 */}
-                        <div className="col-span-6 md:col-span-5 space-y-1">
-                            <label className="text-xs font-semibold text-gray-500 uppercase">Employé</label>
-                            <input
-                                type="text"
+                <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto custom-scrollbar p-8 space-y-8">
+                    {/* Section 1: Informations Générales */}
+                    <div className="space-y-4">
+                        <h4 className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">
+                            <Users className="w-3 h-3" />
+                            Identité & Période
+                        </h4>
+
+                        <div className="grid grid-cols-12 gap-x-4 gap-y-5">
+                            <InputField
+                                label="Employé"
                                 name="employeeName"
                                 value={formData.employeeName || ''}
-                                onChange={handleChange}
-                                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all"
+                                className="col-span-12 md:col-span-6"
                             />
-                        </div>
-                        <div className="col-span-6 md:col-span-5 space-y-1">
-                            <label className="text-xs font-semibold text-gray-500 uppercase">Employeur</label>
-                            <input
-                                type="text"
+                            <InputField
+                                label="Employeur"
                                 name="employerName"
                                 value={formData.employerName || ''}
-                                onChange={handleChange}
-                                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all"
+                                className="col-span-12 md:col-span-6"
                             />
-                        </div>
 
-                        {/* Période - Ligne 1 (Fin) */}
-                        <div className="col-span-6 md:col-span-1 space-y-1">
-                            <label className="text-xs font-semibold text-gray-500 uppercase">Mois</label>
-                            <input
-                                type="number"
+                            <InputField
+                                label="Mois"
                                 name="periodMonth"
+                                type="number"
+                                step="1"
                                 min="1"
                                 max="12"
                                 value={formData.periodMonth || ''}
-                                onChange={handleChange}
-                                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all text-center"
+                                className="col-span-6 md:col-span-3"
                             />
-                        </div>
-                        <div className="col-span-6 md:col-span-1 space-y-1">
-                            <label className="text-xs font-semibold text-gray-500 uppercase">Année</label>
-                            <input
-                                type="number"
+                            <InputField
+                                label="Année"
                                 name="periodYear"
+                                type="number"
+                                step="1"
+                                min="2000"
+                                max="2100"
                                 value={formData.periodYear || ''}
-                                onChange={handleChange}
-                                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all text-center"
+                                className="col-span-6 md:col-span-3"
                             />
-                        </div>
-
-                        {/* Adresse - Ligne 2 */}
-                        <div className="col-span-12 space-y-1">
-                            <label className="text-xs font-semibold text-gray-500 uppercase">Adresse Employé</label>
-                            <input
-                                type="text"
+                            <InputField
+                                label="Adresse"
                                 name="employeeAddress"
                                 value={formData.employeeAddress || ''}
-                                onChange={handleChange}
-                                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all"
+                                className="col-span-12 md:col-span-6"
                             />
-                        </div>
 
-                        {/* Admin - Ligne 3 */}
-                        <div className="col-span-6 space-y-1">
-                            <label className="text-xs font-semibold text-gray-500 uppercase">SIRET</label>
-                            <input
-                                type="text"
-                                name="siretNumber"
-                                value={formData.siretNumber || ''}
-                                onChange={handleChange}
-                                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all font-mono"
-                            />
-                        </div>
-                        <div className="col-span-6 space-y-1">
-                            <label className="text-xs font-semibold text-gray-500 uppercase">URSSAF</label>
-                            <input
-                                type="text"
-                                name="urssafNumber"
-                                value={formData.urssafNumber || ''}
-                                onChange={handleChange}
-                                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all font-mono"
-                            />
+                            <div className="col-span-12 grid grid-cols-2 gap-4 pt-2">
+                                <InputField
+                                    label="SIRET"
+                                    name="siretNumber"
+                                    value={formData.siretNumber || ''}
+                                />
+                                <InputField
+                                    label="URSSAF"
+                                    name="urssafNumber"
+                                    value={formData.urssafNumber || ''}
+                                />
+                            </div>
                         </div>
                     </div>
 
-                    <div className="border-t border-gray-100 dark:border-gray-700 pt-4">
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-blue-600 mb-3 flex items-center gap-2">
-                             Détails Financiers
-                        </h4>
-                        <div className="grid grid-cols-12 gap-3">
-                            <div className="col-span-4 space-y-1">
-                                <label className="text-[10px] font-bold text-gray-500 uppercase">Brut</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    name="grossSalary"
-                                    value={formData.grossSalary}
-                                    onChange={handleChange}
-                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 outline-none font-bold text-right"
-                                />
-                            </div>
-                            <div className="col-span-4 space-y-1">
-                                <label className="text-[10px] font-bold text-gray-500 uppercase">Net Imposable</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    name="netTaxable"
-                                    value={formData.netTaxable || ''}
-                                    onChange={handleChange}
-                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none text-right"
-                                />
-                            </div>
-                            <div className="col-span-4 space-y-1">
-                                <label className="text-[10px] font-bold text-green-600 uppercase">Net à Payer</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    name="netToPay"
-                                    value={formData.netToPay}
-                                    onChange={handleChange}
-                                    className="w-full px-3 py-2 rounded-lg border-2 border-green-500/20 bg-green-50/50 dark:bg-green-900/20 focus:ring-2 focus:ring-green-500 outline-none font-black text-green-700 dark:text-green-400 text-right"
-                                />
-                            </div>
+                    {/* Section 2: Données Financières */}
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h4 className="flex items-center gap-2 text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+                                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                                Données Financières
+                            </h4>
+                            <div className="h-px flex-1 bg-blue-100 dark:bg-blue-900/30 ml-4" />
+                        </div>
 
-                            {/* Ligne Secondaire */}
-                            <div className="col-span-3 space-y-1">
-                                <label className="text-[10px] font-medium text-gray-400 uppercase">Heures</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    name="hoursWorked"
-                                    value={formData.hoursWorked || ''}
-                                    onChange={handleChange}
-                                    className="w-full px-2 py-1.5 text-xs rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none text-right"
-                                />
-                            </div>
-                            <div className="col-span-3 space-y-1">
-                                <label className="text-[10px] font-medium text-gray-400 uppercase">Taux Hor. (Auto)</label>
-                                <input
-                                    type="number"
-                                    readOnly
-                                    value={(formData.hoursWorked || 0) > 0 ? ((formData.netToPay || 0) / (formData.hoursWorked || 1)).toFixed(2) : '-'}
-                                    className="w-full px-2 py-1.5 text-xs rounded border border-gray-100 dark:border-gray-800 bg-gray-100 dark:bg-gray-800 text-gray-500 outline-none cursor-not-allowed text-right italic"
-                                />
-                            </div>
-                            <div className="col-span-3 space-y-1">
-                                <label className="text-[10px] font-medium text-gray-400 uppercase">Impôts</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    name="taxAmount"
-                                    value={formData.taxAmount || ''}
-                                    onChange={handleChange}
-                                    className="w-full px-2 py-1.5 text-xs rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none text-right"
-                                />
-                            </div>
-                            <div className="col-span-3 space-y-1">
-                                <label className="text-[10px] font-medium text-gray-400 uppercase">Av. Impôt</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    name="netBeforeTax"
-                                    value={formData.netBeforeTax || ''}
-                                    onChange={handleChange}
-                                    className="w-full px-2 py-1.5 text-xs rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none text-right"
-                                />
+                        <div className="bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 rounded-3xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm transition-all hover:shadow-md">
+                            <div className="grid grid-cols-12 gap-6 items-start">
+                                {/* Colonne Principale */}
+                                <div className="col-span-12 md:col-span-8 grid grid-cols-2 gap-4">
+                                    <InputField
+                                        label="Salaire Brut"
+                                        name="grossSalary"
+                                        type="number"
+                                        value={formData.grossSalary}
+                                    />
+                                    <InputField
+                                        label="Net Imposable"
+                                        name="netTaxable"
+                                        type="number"
+                                        value={formData.netTaxable || ''}
+                                    />
+                                    <InputField
+                                        label="Net Avant Impôt"
+                                        name="netBeforeTax"
+                                        type="number"
+                                        value={formData.netBeforeTax || ''}
+                                    />
+                                    <InputField
+                                        label="Montant Impôt"
+                                        name="taxAmount"
+                                        type="number"
+                                        value={formData.taxAmount || ''}
+                                    />
+                                </div>
+
+                                {/* Highlight Net à Payer */}
+                                <div className="col-span-12 md:col-span-4 bg-green-50 dark:bg-green-900/10 rounded-2xl p-5 border border-green-100 dark:border-green-900/20 flex flex-col justify-center h-full">
+                                    <label className="text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-wider text-center mb-2">
+                                        Net à Payer
+                                    </label>
+                                    <div className="relative">
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            name="netToPay"
+                                            value={formData.netToPay}
+                                            onChange={handleChange}
+                                            className="w-full bg-transparent text-center font-black text-3xl text-green-700 dark:text-green-400 outline-none border-b-2 border-green-200 dark:border-green-800 focus:border-green-500 transition-all pb-2 px-1"
+                                        />
+                                        <span className="absolute right-0 bottom-3 text-green-600/50 font-bold text-sm">€</span>
+                                    </div>
+                                    <p className="text-[10px] text-green-600/60 text-center mt-2 font-medium">
+                                        Montant final versé
+                                    </p>
+                                </div>
+
+                                {/* Ligne Secondaire : Heures */}
+                                <div className="col-span-12 grid grid-cols-2 gap-4 pt-2 border-t border-gray-100 dark:border-gray-800/50 mt-2">
+                                    <InputField
+                                        label="Heures Travaillées"
+                                        name="hoursWorked"
+                                        type="number"
+                                        value={formData.hoursWorked || ''}
+                                    />
+                                    <InputField
+                                        label="Taux Horaire (Calculé)"
+                                        value={(formData.hoursWorked || 0) > 0 ? ((formData.netToPay || 0) / (formData.hoursWorked || 1)).toFixed(2) : '-'}
+                                        readOnly={true}
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
                 </form>
 
-                <div className="p-6 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex justify-end gap-3">
+                <div className="p-6 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 flex justify-end gap-3 z-10">
                     <button
                         onClick={onClose}
-                        className="px-6 py-2 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all font-medium"
+                        className="px-6 py-2.5 rounded-xl text-gray-500 font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
                     >
                         Annuler
                     </button>
                     <button
                         onClick={handleSubmit}
                         disabled={isSaving}
-                        className="px-6 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all font-bold shadow-lg shadow-blue-500/20 disabled:opacity-50 flex items-center gap-2"
+                        className="px-8 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 hover:shadow-lg hover:-translate-y-0.5 transition-all font-bold shadow-blue-500/25 disabled:opacity-50 disabled:shadow-none disabled:translate-y-0 flex items-center gap-2"
                     >
                         {isSaving ? (
                             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         ) : (
                             <Save className="w-5 h-5" />
                         )}
-                        Enregistrer
+                        <span>Enregistrer</span>
                     </button>
                 </div>
             </div>

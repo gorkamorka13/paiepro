@@ -8,7 +8,8 @@ import { revalidatePath } from 'next/cache';
 export async function updateUserAction(data: { name: string; password?: string }) {
   const session = await auth();
   if (!session?.user?.id) {
-    return { success: false, error: 'Non authentifié' };
+    console.error('❌ [updateUserAction] No session or user ID found');
+    return { success: false, error: 'Session invalide ou expirée. Veuillez vous reconnecter.' };
   }
 
   try {
@@ -25,7 +26,7 @@ export async function updateUserAction(data: { name: string; password?: string }
     revalidatePath('/');
     return { success: true };
   } catch (error) {
-    console.error('Error updating user:', error);
-    return { success: false, error: 'Erreur lors de la mise à jour' };
+    console.error('❌ [updateUserAction] Error updating user:', error);
+    return { success: false, error: 'Une erreur est survenue lors de la mise à jour du profil.' };
   }
 }

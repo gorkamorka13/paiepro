@@ -70,6 +70,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (session.user) {
         (session.user as any).role = token.role;
         (session.user as any).username = token.username;
+        session.user.id = token.sub!;
       }
       return session;
     },
