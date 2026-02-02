@@ -163,7 +163,7 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
                 </div>
 
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700 font-medium">
-                    <p className="text-sm text-blue-600 dark:text-blue-400 mb-1">Total Brut</p>
+                    <p className="text-sm text-blue-600 dark:text-blue-400 mb-1">Total Brut (Arrondis)</p>
                     <p className="text-2xl md:text-3xl font-bold">
                         {statsData.reduce((sum, p) => sum + Math.trunc(p.grossSalary), 0).toFixed(2)} €
                     </p>
@@ -219,7 +219,7 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
                                     </div>
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Employé
+                                    Client
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wider">
                                     Salaire Brut
@@ -266,17 +266,24 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
                                             </div>
                                         </td>
                                         <td className="px-4 py-4 whitespace-nowrap">
-                                            <div className="text-sm font-medium">{payslip.employeeName || 'Nom inconnu'}</div>
-                                            <div className="text-xs text-gray-500 italic max-w-xs truncate">{payslip.employeeAddress || 'Adresse non renseignée'}</div>
-                                            <div className="text-xs text-gray-400 font-bold mt-1">{payslip.employerName || 'Entreprise inconnue'}</div>
+                                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{payslip.employerName || 'Client inconnu'}</div>
                                             {(payslip.siretNumber || payslip.urssafNumber) ? (
-                                                <div className="text-[10px] text-gray-400">
-                                                    {payslip.siretNumber && `SIRET: ${payslip.siretNumber}`}
-                                                    {payslip.siretNumber && payslip.urssafNumber && ' | '}
-                                                    {payslip.urssafNumber && `URSSAF: ${payslip.urssafNumber}`}
+                                                <div className="text-xs text-gray-500 mt-1">
+                                                    {payslip.siretNumber && (
+                                                        <div className="flex items-center gap-1">
+                                                            <span className="font-semibold text-[10px] text-gray-400 uppercase">SIRET</span>
+                                                            {payslip.siretNumber}
+                                                        </div>
+                                                    )}
+                                                    {payslip.urssafNumber && (
+                                                        <div className="flex items-center gap-1">
+                                                            <span className="font-semibold text-[10px] text-gray-400 uppercase">URSSAF</span>
+                                                            {payslip.urssafNumber}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             ) : (
-                                                <div className="text-[10px] text-amber-500 italic">Infos employeur manquantes</div>
+                                                <div className="text-[10px] text-amber-500 italic mt-1">Identifiants manquants</div>
                                             )}
                                         </td>
                                         <td className="px-4 py-4 whitespace-nowrap">
