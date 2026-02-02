@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import Image from "next/image";
-import { User, Lock, Loader2, LogIn, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { User, Lock, Loader2, LogIn, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
 export function LoginDialog() {
@@ -75,7 +75,7 @@ export function LoginDialog() {
               Connexion
             </h2>
             <p className="text-sm text-slate-400 text-center max-w-[260px] leading-relaxed font-medium">
-              Votre assistant intelligent d'analyse de fiches de paie
+              Votre assistant intelligent d&apos;analyse de fiches de paie
             </p>
           </div>
 

@@ -60,7 +60,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                     <div className="space-y-2">
                         <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
                             <User className="w-4 h-4" />
-                            Nom d'affichage
+                            Nom d&apos;affichage
                         </label>
                         <input
                             type="text"

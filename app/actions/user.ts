@@ -13,7 +13,7 @@ export async function updateUserAction(data: { name: string; password?: string }
   }
 
   try {
-    const updateData: any = { name: data.name };
+    const updateData: Record<string, string> = { name: data.name };
     if (data.password && data.password.trim() !== '') {
       updateData.password = await bcrypt.hash(data.password, 10);
     }

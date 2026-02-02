@@ -2,12 +2,11 @@
 
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { Home, BarChart3, Settings, ChevronLeft, ChevronRight, Sun, Moon, Menu, X, Users, LogOut } from 'lucide-react';
+import { Home, BarChart3, Settings, Sun, Moon, Menu, X, LogOut } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
 import { signOut } from 'next-auth/react';
 import packageInfo from '../package.json';
-import useSWR from 'swr';
 import Image from 'next/image';
 import { UsageIndicator } from './UsageIndicator';
 import { SettingsModal } from './auth/SettingsModal';

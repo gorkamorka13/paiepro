@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { getPayslipsAction, deletePayslipAction, updatePayslipAction } from '@/app/actions/payslip';
-import { Trash2, ExternalLink, Users, Edit2, X, Save, FileSpreadsheet, FileText, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Trash2, ExternalLink, Users, Edit2, X, Save, FileSpreadsheet, FileText, ArrowUp, ArrowDown } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Payslip, UpdatePayslipData } from '@/types/payslip';
 import { exportToExcel, exportToPDF } from '@/lib/export-utils';
@@ -445,7 +445,7 @@ function EditModal({
         }));
     };
 
-    const InputField = ({ label, name, type = "text", value, placeholder, className, readOnly = false, step, min, max }: any) => (
+    const InputField = ({ label, name, type = "text", value, placeholder, className, readOnly = false, step, min, max }: { label: string, name: string, type?: string, value: string | number, placeholder?: string, className?: string, readOnly?: boolean, step?: string, min?: string, max?: string }) => (
         <div className={`space-y-1.5 ${className}`}>
             <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider ml-1">{label}</label>
             <input
@@ -575,7 +575,7 @@ function EditModal({
                                         label="Salaire Brut"
                                         name="grossSalary"
                                         type="number"
-                                        value={formData.grossSalary}
+                                        value={formData.grossSalary || 0}
                                     />
                                     <InputField
                                         label="Net Imposable"
@@ -628,6 +628,7 @@ function EditModal({
                                     />
                                     <InputField
                                         label="Taux Horaire (Calculé)"
+                                        name="hourlyRate"
                                         value={(formData.hoursWorked || 0) > 0 ? ((formData.netToPay || 0) / (formData.hoursWorked || 1)).toFixed(2) : '-'}
                                         readOnly={true}
                                     />

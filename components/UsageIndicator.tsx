@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import useSWR from 'swr';
-import { Database, Zap, HardDrive } from 'lucide-react';
+import { Zap, HardDrive } from 'lucide-react';
 import { getUsageStatsAction } from '@/app/actions/payslip';
 
 export function UsageIndicator() {
