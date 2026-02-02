@@ -5,10 +5,9 @@ import DashboardClient from '@/components/DashboardClient';
 
 export default async function DashboardPage() {
     // Pre-fetch data on the server
-    // const result = await getPayslipsAction();
+    const result = await getPayslipsAction();
     // MOCK FOR DEBUGGING
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result: { success: boolean; data: any[]; error?: string } = { success: true, data: [] };
+    // const result: { success: boolean; data: any[]; error?: string } = { success: true, data: [] };
 
     // If there's an error fetching data, show error state
     if (!result.success) {
