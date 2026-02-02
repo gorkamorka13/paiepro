@@ -10,14 +10,15 @@ import packageInfo from '../package.json';
 import useSWR from 'swr';
 import Image from 'next/image';
 import { UsageIndicator } from './UsageIndicator';
+import { SettingsModal } from './auth/SettingsModal';
 
 export function Sidebar() {
     const pathname = usePathname();
     const searchParams = useSearchParams();
-    const [isCollapsed, setIsCollapsed] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     useEffect(() => {
         setMounted(true);
@@ -26,10 +27,6 @@ export function Sidebar() {
     const menuItems = [
         { icon: Home, label: 'Accueil', href: '/' },
         { icon: BarChart3, label: 'Dashboard', href: '/dashboard' },
-    ];
-
-    const secondaryItems = [
-        { icon: Settings, label: 'Paramètres', href: '#' },
     ];
 
     const toggleTheme = () => {
@@ -55,26 +52,41 @@ export function Sidebar() {
             )}
 
             <aside
-                className={`fixed left-0 top-0 h-screen bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transition-all duration-300 z-50 flex flex-col
-                    ${isCollapsed ? 'w-20' : 'w-60'}
+                className={`fixed left-0 top-0 h-screen bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transition-all duration-300 z-50 flex flex-col w-60
                     ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
                 `}
             >
-                <div className="p-6 flex items-center gap-3">
-                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
-                        <Image
-                            src="/paiepro.png"
-                            alt="PaiePro Logo"
-                            width={32}
-                            height={32}
-                            className="w-full h-full object-contain p-1"
-                        />
-                    </div>
-                    {!isCollapsed && (
+                <div className="p-6 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                            <Image
+                                src="/paiepro.png"
+                                alt="PaiePro Logo"
+                                width={32}
+                                height={32}
+                                className="w-full h-full object-contain p-1"
+                            />
+                        </div>
                         <span className="font-bold text-xl tracking-tight text-gray-900 dark:text-white truncate">
                             PaiePro
                         </span>
-                    )}
+                    </div>
+
+                    <button
+                        onClick={toggleTheme}
+                        className="p-2 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                        aria-label="Toggle Theme"
+                    >
+                        {mounted ? (
+                            theme === 'dark' ? (
+                                <Sun className="w-5 h-5 text-amber-500 bg-transparent" />
+                            ) : (
+                                <Moon className="w-5 h-5 text-blue-600 bg-transparent" />
+                            )
+                        ) : (
+                            <div className="w-5 h-5 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse" />
+                        )}
+                    </button>
                 </div>
 
                 <nav className="flex-1 px-3 space-y-1 overflow-y-auto custom-scrollbar">
@@ -91,27 +103,24 @@ export function Sidebar() {
                                     }`}
                             >
                                 <item.icon className="w-6 h-6 flex-shrink-0" />
-                                {!isCollapsed && <span className="font-medium">{item.label}</span>}
+                                <span className="font-medium">{item.label}</span>
                             </Link>
                         );
                     })}
 
                     <div className="my-6 border-t border-gray-100 dark:border-gray-800 mx-3" />
 
-                    {secondaryItems.map((item) => (
-                        <Link
-                            key={item.label}
-                            href={item.href}
-                            className="flex items-center gap-3 px-3 py-3 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
-                        >
-                            <item.icon className="w-6 h-6 flex-shrink-0" />
-                            {!isCollapsed && <span className="font-medium">{item.label}</span>}
-                        </Link>
-                    ))}
+                    <button
+                        onClick={() => setIsSettingsOpen(true)}
+                        className="flex items-center gap-3 px-3 py-3 w-full rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 text-left"
+                    >
+                        <Settings className="w-6 h-6 flex-shrink-0" />
+                        <span className="font-medium">Paramètres</span>
+                    </button>
                 </nav>
 
                 <div className="p-3 border-t border-gray-100 dark:border-gray-800 space-y-4">
-                    <UsageIndicator isCollapsed={isCollapsed} />
+                    <UsageIndicator />
 
                     <div className="space-y-2">
                         <button
@@ -122,63 +131,26 @@ export function Sidebar() {
                             className="flex items-center gap-3 w-full px-3 py-3 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200 overflow-hidden border border-transparent hover:border-red-100 dark:hover:border-red-900/30"
                         >
                             <LogOut className="w-6 h-6 flex-shrink-0" />
-                            {!isCollapsed && <span className="font-medium text-sm">Déconnexion</span>}
-                        </button>
-
-                        <button
-                            onClick={toggleTheme}
-                            className={`flex items-center gap-3 w-full px-3 py-3 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 overflow-hidden ${isCollapsed ? 'justify-center' : ''
-                                }`}
-                        >
-                            {mounted ? (
-                                <>
-                                    {theme === 'dark' ? (
-                                        <Sun className="w-6 h-6 flex-shrink-0 text-amber-500" />
-                                    ) : (
-                                        <Moon className="w-6 h-6 flex-shrink-0 text-blue-600" />
-                                    )}
-                                    {!isCollapsed && (
-                                        <span className="font-medium">
-                                            {theme === 'dark' ? 'Mode Clair' : 'Mode Sombre'}
-                                        </span>
-                                    )}
-                                </>
-                            ) : (
-                                <div className="w-6 h-6 flex-shrink-0 bg-gray-200 dark:bg-gray-800 rounded-full animate-pulse" />
-                            )}
-                        </button>
-
-                        <button
-                            onClick={() => setIsCollapsed(!isCollapsed)}
-                            className="flex items-center gap-3 w-full px-3 py-3 rounded-xl text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 border border-gray-100 dark:border-gray-800 overflow-hidden"
-                        >
-                            {isCollapsed ? (
-                                <ChevronRight className="w-6 h-6 mx-auto" />
-                            ) : (
-                                <>
-                                    <ChevronLeft className="w-6 h-6 flex-shrink-0" />
-                                    <span className="font-medium">Réduire</span>
-                                </>
-                            )}
+                            <span className="font-medium text-sm">Déconnexion</span>
                         </button>
                     </div>
 
                     <div className="mt-4 px-3 py-2 text-center border-t border-gray-100 dark:border-gray-800">
-                        {!isCollapsed ? (
-                            <div className="space-y-1">
-                                <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
-                                    © {new Date().getFullYear()} Michel ESPARSA
-                                </p>
-                                <p className="text-[9px] text-gray-300 dark:text-gray-600">
-                                    v{packageInfo.version}
-                                </p>
-                            </div>
-                        ) : (
-                            <div className="text-[10px] text-gray-400 font-bold">ME</div>
-                        )}
+                        <div className="space-y-1">
+                            <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
+                                © {new Date().getFullYear()} Michel ESPARSA
+                            </p>
+                            <p className="text-[9px] text-gray-300 dark:text-gray-600">
+                                v{packageInfo.version}
+                            </p>
+                        </div>
                     </div>
                 </div>
             </aside>
+
+            {isSettingsOpen && (
+                <SettingsModal onClose={() => setIsSettingsOpen(false)} />
+            )}
         </>
     );
 }

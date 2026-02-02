@@ -19,6 +19,7 @@ export function Dashboard() {
     });
     const [editingPayslip, setEditingPayslip] = useState<Payslip | null>(null);
     const [sortConfig, setSortConfig] = useState({ key: 'period', direction: 'desc' as 'asc' | 'desc' });
+    const [selectedPayslips, setSelectedPayslips] = useState<Set<string>>(new Set());
 
     // Sorting Logic
     const sortedPayslips = [...payslips].sort((a, b) => {
@@ -44,9 +45,48 @@ export function Dashboard() {
         if (result.success) {
             toast.success('Bulletin supprimé');
             revalidate();
+            // Remove from selection if it was selected
+            if (selectedPayslips.has(id)) {
+                const newSelection = new Set(selectedPayslips);
+                newSelection.delete(id);
+                setSelectedPayslips(newSelection);
+            }
         } else {
             toast.error(result.error);
         }
+    };
+
+    // Selection Logic
+    const toggleSelectAll = () => {
+        if (selectedPayslips.size === sortedPayslips.length) {
+            setSelectedPayslips(new Set());
+        } else {
+            setSelectedPayslips(new Set(sortedPayslips.map(p => p.id)));
+        }
+    };
+
+    const toggleSelect = (id: string) => {
+        const newSelection = new Set(selectedPayslips);
+        if (newSelection.has(id)) {
+            newSelection.delete(id);
+        } else {
+            newSelection.add(id);
+        }
+        setSelectedPayslips(newSelection);
+    };
+
+    const handleExportExcel = () => {
+        const dataToExport = selectedPayslips.size > 0
+            ? sortedPayslips.filter(p => selectedPayslips.has(p.id))
+            : sortedPayslips;
+        exportToExcel(dataToExport);
+    };
+
+    const handleExportPDF = () => {
+        const dataToExport = selectedPayslips.size > 0
+            ? sortedPayslips.filter(p => selectedPayslips.has(p.id))
+            : sortedPayslips;
+        exportToPDF(dataToExport);
     };
 
     // Préparer les données pour la répartition par client
@@ -96,18 +136,18 @@ export function Dashboard() {
             </div>
             <div className="flex gap-3 items-center">
                 <button
-                    onClick={() => exportToExcel(payslips)}
+                    onClick={handleExportExcel}
                     className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors shadow-sm"
                 >
                     <FileSpreadsheet className="w-4 h-4" />
-                    <span>Exporter Excel</span>
+                    <span>Exporter Excel {selectedPayslips.size > 0 && `(${selectedPayslips.size})`}</span>
                 </button>
                 <button
-                    onClick={() => exportToPDF(payslips)}
+                    onClick={handleExportPDF}
                     className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors shadow-sm"
                 >
                     <FileText className="w-4 h-4" />
-                    <span>Exporter PDF</span>
+                    <span>Exporter PDF {selectedPayslips.size > 0 && `(${selectedPayslips.size})`}</span>
                 </button>
             </div>
 
@@ -147,54 +187,20 @@ export function Dashboard() {
                 </div>
             </div>
 
-            {/* Répartition par Client */}
-            {
-                clientData.length > 0 && (
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-                        <div className="flex items-center gap-2 mb-6">
-                            <Users className="w-5 h-5 text-blue-600" />
-                            <h2 className="text-xl font-semibold">Répartition par Employeur (Cumul Net)</h2>
-                        </div>
-
-                        <div className="h-[300px] md:h-[400px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={clientData} margin={{ top: 20, right: 10, left: -10, bottom: 60 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                    <XAxis
-                                        dataKey="name"
-                                        interval={0}
-                                        angle={-45}
-                                        textAnchor="end"
-                                        tick={{ fontSize: 10 }}
-                                        height={80}
-                                    />
-                                    <YAxis
-                                        tickFormatter={(value) => `${value} €`}
-                                        tick={{ fontSize: 10 }}
-                                    />
-                                    <Tooltip
-                                        formatter={(value: number) => `${value.toFixed(2)} €`}
-                                        labelStyle={{ color: '#000' }}
-                                        cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }}
-                                    />
-                                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                                        {clientData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                        ))}
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </div>
-                )
-            }
-
             {/* Tableau des bulletins */}
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
                             <tr>
+                                <th className="px-4 py-3 text-left">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedPayslips.size === sortedPayslips.length && sortedPayslips.length > 0}
+                                        onChange={toggleSelectAll}
+                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600"
+                                    />
+                                </th>
                                 <th
                                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
                                     onClick={toggleSort}
@@ -230,6 +236,14 @@ export function Dashboard() {
 
                                 return (
                                     <tr key={payslip.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/50">
+                                        <td className="px-4 py-4 whitespace-nowrap">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedPayslips.has(payslip.id)}
+                                                onChange={() => toggleSelect(payslip.id)}
+                                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600"
+                                            />
+                                        </td>
                                         <td className="px-4 py-4 whitespace-nowrap">
                                             <div className="flex flex-col gap-1">
                                                 <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
@@ -323,6 +337,48 @@ export function Dashboard() {
                     </div>
                 )}
             </div>
+
+            {/* Répartition par Client */}
+            {
+                clientData.length > 0 && (
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center gap-2 mb-6">
+                            <Users className="w-5 h-5 text-blue-600" />
+                            <h2 className="text-xl font-semibold">Répartition par Employeur (Cumul Net)</h2>
+                        </div>
+
+                        <div className="h-[300px] md:h-[400px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={clientData} margin={{ top: 20, right: 10, left: -10, bottom: 60 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                    <XAxis
+                                        dataKey="name"
+                                        interval={0}
+                                        angle={-45}
+                                        textAnchor="end"
+                                        tick={{ fontSize: 10 }}
+                                        height={80}
+                                    />
+                                    <YAxis
+                                        tickFormatter={(value) => `${value} €`}
+                                        tick={{ fontSize: 10 }}
+                                    />
+                                    <Tooltip
+                                        formatter={(value: number) => `${value.toFixed(2)} €`}
+                                        labelStyle={{ color: '#000' }}
+                                        cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }}
+                                    />
+                                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                                        {clientData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+                )
+            }
 
             {/* Modal d'édition */}
             {

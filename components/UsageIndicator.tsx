@@ -5,7 +5,7 @@ import useSWR from 'swr';
 import { Database, Zap, HardDrive } from 'lucide-react';
 import { getUsageStatsAction } from '@/app/actions/payslip';
 
-export function UsageIndicator({ isCollapsed }: { isCollapsed: boolean }) {
+export function UsageIndicator() {
     const { data: statsResult, error } = useSWR('usage-stats', async () => {
         const res = await getUsageStatsAction();
         return res.data;
@@ -31,25 +31,6 @@ export function UsageIndicator({ isCollapsed }: { isCollapsed: boolean }) {
     }, [statsResult]);
 
     if (error) return null;
-
-    if (isCollapsed) {
-        return (
-            <div className="flex flex-col items-center gap-4 py-4 border-t border-gray-100 dark:border-gray-800">
-                <div className="relative group">
-                    <HardDrive className={`w-5 h-5 ${parseFloat(stats.storageMB || '0') > 200 ? 'text-amber-500' : 'text-gray-400'}`} />
-                    <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 whitespace-nowrap z-50 transition-opacity">
-                        Stockage: {stats.storagePercent.toFixed(1)}%
-                    </div>
-                </div>
-                <div className="relative group">
-                    <Zap className="w-5 h-5 text-blue-500" />
-                    <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 whitespace-nowrap z-50 transition-opacity">
-                        Tokens: {stats.tokenDisplay}
-                    </div>
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div className="p-4 bg-gray-50/50 dark:bg-gray-800/30 rounded-2xl border border-gray-100 dark:border-gray-800/50 space-y-4">
