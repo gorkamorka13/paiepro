@@ -44,7 +44,7 @@ export async function extractDataTraditional(fileUrl: string): Promise<AIExtract
         };
 
         // Extraction par Regex
-        const textClean = text.replace(/\s+/g, ' '); // Normaliser les espaces pour faciliter la recherche
+        // const textClean = text.replace(/\s+/g, ' '); // Normaliser les espaces pour faciliter la recherche
 
         // SIRET (14 chiffres)
         const siretMatch = text.match(/(?:SIRET|N°\s+SIRET)\s*[:\s]*(\d{14})/i) || text.match(/(\d{3}\s*\d{3}\s*\d{3}\s*\d{5})/);

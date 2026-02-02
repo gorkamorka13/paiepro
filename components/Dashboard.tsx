@@ -250,7 +250,7 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
                         className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
                     >
                         <option value="all">Toutes les années</option>
-                        {hasFailed && <option value="failed" className="text-red-500 font-bold">⚠️ Échecs d'analyse</option>}
+                        {hasFailed && <option value="failed" className="text-red-500 font-bold">⚠️ Échecs d&apos;analyse</option>}
                         {availableYears.map(year => (
                             <option key={year} value={year}>{year}</option>
                         ))}

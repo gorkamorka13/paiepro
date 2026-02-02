@@ -1,6 +1,6 @@
 'use client';
 
-import { TrendingUp, Calendar } from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
 
 interface FinancialTrendsChartProps {
     timelineData: Array<{ period: string; net: number; gross: number }>;
