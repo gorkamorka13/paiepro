@@ -30,8 +30,6 @@ export async function processPayslipAction(
             addRandomSuffix: true,
         });
 
-        console.log(`✅ Fichier uploadé: ${blob.url} (Mode Automatique)`);
-
         // 3. Analyse IA (Automatique)
         let extractedData;
         try {
@@ -106,8 +104,6 @@ export async function processPayslipAction(
             },
         });
 
-        console.log(`✅ Bulletin enregistré: ${payslip.id}`);
-
         // 6. Revalidation du cache Next.js
         revalidatePath('/dashboard');
 
@@ -129,10 +125,6 @@ export async function processPayslipAction(
 // Action pour récupérer tous les bulletins
 export async function getPayslipsAction(): Promise<ActionResult<Payslip[]>> {
     try {
-        console.log('🔍 getPayslipsAction: Starting to fetch payslips...');
-        console.log('🔍 Database URL exists:', !!process.env.DATABASE_URL);
-        console.log('🔍 Environment:', process.env.NODE_ENV);
-
         const payslips = await prisma.payslip.findMany({
             orderBy: [
                 { periodYear: 'desc' },
@@ -141,7 +133,6 @@ export async function getPayslipsAction(): Promise<ActionResult<Payslip[]>> {
             ],
         });
 
-        console.log(`✅ Successfully fetched ${payslips.length} payslips`);
         return { success: true, data: payslips as Payslip[] };
     } catch (error) {
         console.error('❌ Error in getPayslipsAction:', error);
@@ -160,18 +151,39 @@ export async function getPayslipsAction(): Promise<ActionResult<Payslip[]>> {
 // Action pour supprimer un bulletin
 export async function deletePayslipAction(id: string): Promise<ActionResult> {
     try {
+        // 1. Trouver le bulletin pour avoir l'URL du fichier
+        const payslip = await prisma.payslip.findUnique({
+            where: { id },
+            select: { fileUrl: true, fileName: true }
+        });
+
+        if (!payslip) {
+            return { success: false, error: 'Bulletin non trouvé' };
+        }
+
+        // 2. Supprimer du storage si l'URL existe
+        if (payslip.fileUrl) {
+            try {
+                await del(payslip.fileUrl);
+            } catch (blobError) {
+                console.error(`⚠️ Erreur suppression blob (${payslip.fileName}):`, blobError);
+                // On continue la suppression en DB même si le blob échoue (pour ne pas bloquer l'utilisateur)
+            }
+        }
+
+        // 3. Supprimer de la DB
         await prisma.payslip.delete({
             where: { id },
         });
 
         revalidatePath('/dashboard');
 
-        return { success: true, data: { id, fileName: '' } };
+        return { success: true, data: { id, fileName: payslip.fileName } };
     } catch (error) {
         console.error('❌ Erreur lors de la suppression:', error);
         return {
             success: false,
-            error: 'Impossible de supprimer le bulletin'
+            error: error instanceof Error ? error.message : 'Impossible de supprimer le bulletin'
         };
     }
 }

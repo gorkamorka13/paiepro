@@ -19,8 +19,6 @@ export async function extractDataTraditional(fileUrl: string): Promise<AIExtract
         const data = await pdf(buffer);
         const text = data.text;
 
-        console.log('📄 Texte extrait par pdf-parse (début) :', text.substring(0, 500));
-
         // Patterns Regex pour les bulletins français standard
         const patterns = {
             employeeName: /([A-Z\s]+)\n/i, // Très approximatif
@@ -93,14 +91,11 @@ export async function extractDataTraditional(fileUrl: string): Promise<AIExtract
  * Service hybride : Tente le traditionnel, sinon passe à l'IA
  */
 export async function analyzeDocumentHybrid(fileUrl: string): Promise<AIExtractedData & { aiModel: string; inputTokens?: number; outputTokens?: number }> {
-    console.log('⚙️ Tentative d\'extraction traditionnelle...');
     const traditionalResult = await extractDataTraditional(fileUrl);
 
     if (traditionalResult) {
-        console.log('✅ Extraction traditionnelle réussie');
         return traditionalResult as AIExtractedData & { aiModel: string };
     }
 
-    console.log('🤖 Échec traditionnel. Appel à l\'IA Gemini 2.5 Flash...');
     return await analyzeDocument(fileUrl);
 }

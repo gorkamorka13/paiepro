@@ -16,7 +16,7 @@ export function ClientChart({ clientData }: ClientChartProps) {
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-2 mb-6">
                 <Users className="w-5 h-5 text-blue-600" />
-                <h2 className="text-xl font-semibold">Répartition par Employeur (Cumul Net)</h2>
+                <h2 className="text-xl font-semibold">Répartition par Client (Cumul Net)</h2>
             </div>
 
             <div className="space-y-4">

@@ -1,14 +1,17 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { getPayslipsAction, deletePayslipAction, updatePayslipAction } from '@/app/actions/payslip';
 import { Trash2, ExternalLink, Users, Edit2, X, Save, FileSpreadsheet, FileText, ArrowUp, ArrowDown } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Payslip, UpdatePayslipData } from '@/types/payslip';
 import useSWR from 'swr';
 import { ClientChart } from './ClientChart';
+import { formatName } from '@/lib/format-utils';
 
 export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[] }) {
+    const router = useRouter();
     const { data: payslips = [], error, isLoading, mutate: revalidate } = useSWR<Payslip[]>('payslips', async () => {
         const result = await getPayslipsAction();
         if (!result.success) throw new Error(result.error);
@@ -98,7 +101,7 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
 
     // Préparer les données pour la répartition par client
     const clientDataMap = payslips.reduce((acc, p) => {
-        const employer = p.employerName || 'Non identifié';
+        const employer = formatName(p.employerName) || 'Non identifié';
         acc[employer] = (acc[employer] || 0) + p.netToPay;
         return acc;
     }, {} as Record<string, number>);
@@ -266,7 +269,7 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
                                             </div>
                                         </td>
                                         <td className="px-4 py-4 whitespace-nowrap">
-                                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{payslip.employerName || 'Client inconnu'}</div>
+                                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{formatName(payslip.employerName) || 'Client inconnu'}</div>
                                             {(payslip.siretNumber || payslip.urssafNumber) ? (
                                                 <div className="text-xs text-gray-500 mt-1">
                                                     {payslip.siretNumber && (
@@ -362,7 +365,8 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
                             const result = await updatePayslipAction(id, data);
                             if (result.success) {
                                 toast.success('Bulletin mis à jour');
-                                revalidate();
+                                await revalidate();
+                                router.refresh();
                                 setEditingPayslip(null);
                             } else {
                                 toast.error(result.error);
@@ -475,13 +479,13 @@ function EditModal({
 
                         <div className="grid grid-cols-12 gap-x-4 gap-y-5">
                             <InputField
-                                label="Employé"
+                                label="Salarié / Intervenant"
                                 name="employeeName"
                                 value={formData.employeeName || ''}
                                 className="col-span-12 md:col-span-6"
                             />
                             <InputField
-                                label="Employeur"
+                                label="Nom du Client (Employeur)"
                                 name="employerName"
                                 value={formData.employerName || ''}
                                 className="col-span-12 md:col-span-6"

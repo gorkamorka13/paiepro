@@ -46,8 +46,6 @@ export async function analyzeDocument(fileUrl: string): Promise<AIExtractedData 
     const mimeType = response.headers.get('content-type') || 'application/pdf';
 
     try {
-        console.log(`🤖 Analyse avec le modèle: ${modelId}`);
-
         const model = genAI.getGenerativeModel({
             model: modelId,
             generationConfig: {
@@ -68,7 +66,6 @@ export async function analyzeDocument(fileUrl: string): Promise<AIExtractedData 
         ]);
 
         const text = result.response.text();
-        console.log(`📡 Réponse brute de Gemini (${modelId}):`, text);
 
         // 4. Nettoyer et parser le JSON
         // Même avec responseMimeType, on nettoie par sécurité

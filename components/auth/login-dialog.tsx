@@ -20,8 +20,6 @@ export function LoginDialog() {
     setIsLoading(true);
     setError("");
 
-    console.log("🚀 [Login] Attempting with:", { username });
-
     try {
       const result = await signIn("credentials", {
         username,
@@ -30,11 +28,9 @@ export function LoginDialog() {
       });
 
       if (result?.error) {
-        console.log("❌ [Login] Failed:", result.error);
         setError("Identifiants incorrects. Veuillez réessayer.");
         toast.error("Échec de la connexion");
       } else {
-        console.log("✅ [Login] Success!");
         toast.success("Connexion réussie !");
         router.refresh(); // Refresh server components to pick up new session
         // window.location.reload(); // Fallback if needed
@@ -63,18 +59,19 @@ export function LoginDialog() {
         <div className="relative p-10">
           {/* Header Branding */}
           <div className="flex flex-col items-center mb-10">
-            <div className="relative p-1 mb-6 bg-gradient-to-tr from-blue-500 to-indigo-600 rounded-3xl shadow-xl shadow-blue-500/20 ring-4 ring-white/5">
-              <div className="bg-slate-900 rounded-[1.4rem] p-3 overflow-hidden">
-                <Image
-                  src="/paiepro.png"
-                  alt="PaiePro Logo"
-                  width={64}
-                  height={64}
-                  className="w-14 h-14 object-contain brightness-110"
-                />
-              </div>
+            <div className="mb-4 animate-in zoom-in duration-700">
+              <Image
+                src="/paiepro.png"
+                alt="PaiePro Logo"
+                width={80}
+                height={80}
+                className="w-20 h-20 object-contain drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]"
+              />
             </div>
-            <h2 className="text-3xl font-black text-white text-center tracking-tight mb-2">
+            <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500 tracking-tighter mb-2">
+              PaiePro
+            </h1>
+            <h2 className="text-xl font-bold text-white tracking-tight mb-2">
               Connexion
             </h2>
             <p className="text-sm text-slate-400 text-center max-w-[260px] leading-relaxed font-medium">
@@ -151,7 +148,7 @@ export function LoginDialog() {
           <div className="mt-10 text-center">
             <div className="h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent mb-6"></div>
             <p className="text-[10px] text-slate-500 uppercase font-black tracking-[0.2em]">
-              PaiePro Analyzer • Sécurisé par NextAuth
+              © {new Date().getFullYear()} Michel ESPARSA • Sécurisé par NextAuth
             </p>
           </div>
         </div>
