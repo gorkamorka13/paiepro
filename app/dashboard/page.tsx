@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
-import DashboardWrapper from '@/components/DashboardWrapper';
+import DashboardClient from '@/components/DashboardClient';
 import { getPayslipsAction } from '@/app/actions/payslip';
 
 export default async function DashboardPage() {
@@ -68,7 +68,7 @@ export default async function DashboardPage() {
                 </div>
 
                 {/* Dashboard Component */}
-                <DashboardWrapper initialPayslips={initialPayslips} />
+                <DashboardClient initialPayslips={initialPayslips} />
             </div>
         </div>
     );
