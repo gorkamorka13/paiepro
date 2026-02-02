@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
-const pdf = require('pdf-parse');
+// const pdf = require('pdf-parse'); // Moved inside function
 import { aiExtractedDataSchema, type AIExtractedData } from './validations';
 import { analyzeDocument } from './ai-service';
 
@@ -9,6 +9,7 @@ import { analyzeDocument } from './ai-service';
  */
 export async function extractDataTraditional(fileUrl: string): Promise<AIExtractedData | null> {
     try {
+        const pdf = require('pdf-parse'); // Dynamic require to avoid server-side build issues with canvas
         const response = await fetch(fileUrl);
         if (!response.ok) throw new Error('Échec du téléchargement');
 
