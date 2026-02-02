@@ -25,17 +25,31 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
     const [sortConfig, setSortConfig] = useState({ key: 'period', direction: 'desc' as 'asc' | 'desc' });
     const [selectedPayslips, setSelectedPayslips] = useState<Set<string>>(new Set());
     const [searchTerm, setSearchTerm] = useState('');
+    const [selectedYear, setSelectedYear] = useState<string>('all');
+    const [selectedMonth, setSelectedMonth] = useState<string>('all');
 
     // Sorting Logic
+    const availableYears = Array.from(new Set(payslips.map(p => p.periodYear).filter((y): y is number => !!y))).sort((a, b) => b - a);
+    const months = [
+        { id: 1, name: 'Janvier' }, { id: 2, name: 'Février' }, { id: 3, name: 'Mars' },
+        { id: 4, name: 'Avril' }, { id: 5, name: 'Mai' }, { id: 6, name: 'Juin' },
+        { id: 7, name: 'Juillet' }, { id: 8, name: 'Août' }, { id: 9, name: 'Septembre' },
+        { id: 10, name: 'Octobre' }, { id: 11, name: 'Novembre' }, { id: 12, name: 'Décembre' }
+    ];
+
     // Search and Filtering Logic
     const filteredPayslips = payslips.filter(p => {
         const search = searchTerm.toLowerCase();
-        return (
+        const matchesSearch = (
             (p.employerName || '').toLowerCase().includes(search) ||
             (p.employeeName || '').toLowerCase().includes(search) ||
             (p.siretNumber || '').toLowerCase().includes(search) ||
             (p.urssafNumber || '').toLowerCase().includes(search)
         );
+        const matchesYear = selectedYear === 'all' || p.periodYear === Number(selectedYear);
+        const matchesMonth = selectedMonth === 'all' || p.periodMonth === Number(selectedMonth);
+
+        return matchesSearch && matchesYear && matchesMonth;
     });
 
     const sortedPayslips = [...filteredPayslips].sort((a, b) => {
@@ -121,13 +135,13 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
         exportToPDF(dataToExport);
     };
 
-    // Data used for statistics (all or selection)
+    // Data used for statistics (all or selection or filtered)
     const statsData = selectedPayslips.size > 0
         ? payslips.filter(p => selectedPayslips.has(p.id))
-        : payslips;
+        : filteredPayslips;
 
     // Préparer les données pour la répartition par client
-    const clientDataMap = payslips.reduce((acc, p) => {
+    const clientDataMap = statsData.reduce((acc, p) => {
         const employer = formatName(p.employerName) || 'Non identifié';
         acc[employer] = (acc[employer] || 0) + p.netToPay;
         return acc;
@@ -141,7 +155,7 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
         .sort((a, b) => b.value - a.value);
 
     // Préparer les données pour l'évolution temporelle
-    const timelineDataMap = payslips.reduce((acc, p) => {
+    const timelineDataMap = statsData.reduce((acc, p) => {
         if (!p.periodYear || !p.periodMonth) return acc;
         const key = `${p.periodYear}-${String(p.periodMonth).padStart(2, '0')}`;
         if (!acc[key]) {
@@ -217,18 +231,58 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
                     )}
                 </div>
 
-                <div className="relative w-full md:w-72">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Search className="h-4 w-4 text-gray-400" />
+                <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+                    {/* Filtre Année */}
+                    <select
+                        value={selectedYear}
+                        onChange={(e) => setSelectedYear(e.target.value)}
+                        className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+                    >
+                        <option value="all">Toutes les années</option>
+                        {availableYears.map(year => (
+                            <option key={year} value={year}>{year}</option>
+                        ))}
+                    </select>
+
+                    {/* Filtre Mois */}
+                    <select
+                        value={selectedMonth}
+                        onChange={(e) => setSelectedMonth(e.target.value)}
+                        className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+                    >
+                        <option value="all">Tous les mois</option>
+                        {months.map(month => (
+                            <option key={month.id} value={month.id}>{month.name}</option>
+                        ))}
+                    </select>
+
+                    <div className="relative w-full md:w-72">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Search className="h-4 w-4 text-gray-400" />
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Rechercher..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                        />
                     </div>
-                    <input
-                        type="text"
-                        placeholder="Rechercher un client, SIRET..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                    />
                 </div>
+
+                {(searchTerm || selectedYear !== 'all' || selectedMonth !== 'all') && (
+                    <button
+                        onClick={() => {
+                            setSearchTerm('');
+                            setSelectedYear('all');
+                            setSelectedMonth('all');
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 dark:bg-blue-900/20 rounded-lg transition-all animate-in fade-in slide-in-from-right-2 duration-300 w-fit"
+                    >
+                        <X className="w-3 h-3" />
+                        Réinitialiser
+                    </button>
+                )}
             </div>
 
             {/* Statistiques */}
