@@ -1,21 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import dynamic from 'next/dynamic';
 import { getPayslipsAction, deletePayslipAction, updatePayslipAction } from '@/app/actions/payslip';
 import { Trash2, ExternalLink, Users, Edit2, X, Save, FileSpreadsheet, FileText, ArrowUp, ArrowDown } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Payslip, UpdatePayslipData } from '@/types/payslip';
 import useSWR from 'swr';
-
-const ClientChart = dynamic(() => import('./ClientChart').then(mod => mod.ClientChart), {
-    ssr: false,
-    loading: () => (
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700 h-[400px] flex items-center justify-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
-        </div>
-    ),
-});
+import { ClientChart } from './ClientChart';
 
 export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[] }) {
     const { data: payslips = [], error, isLoading, mutate: revalidate } = useSWR<Payslip[]>('payslips', async () => {

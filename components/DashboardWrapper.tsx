@@ -1,17 +1,8 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import React from 'react';
 import type { Payslip } from '@/types/payslip';
-
-const Dashboard = dynamic(() => import('./Dashboard').then((mod) => mod.Dashboard), {
-    ssr: false,
-    loading: () => (
-        <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
-        </div>
-    ),
-});
+import { Dashboard } from './Dashboard';
 
 export default function DashboardWrapper({ initialPayslips }: { initialPayslips: Payslip[] }) {
     return <Dashboard initialPayslips={initialPayslips} />;
