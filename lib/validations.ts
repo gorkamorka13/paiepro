@@ -39,6 +39,8 @@ export const createPayslipSchema = z.object({
     mimeType: z.string(),
     ...aiExtractedDataSchema.shape,
     extractedJson: z.record(z.any()),
+    inputTokens: z.number().int().optional().nullable(),
+    outputTokens: z.number().int().optional().nullable(),
 });
 
 // Validation mise à jour Payslip (coercion pour les formulaires)

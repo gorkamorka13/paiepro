@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { User, Lock, Loader2, LogIn, AlertCircle } from "lucide-react";
+import Image from "next/image";
+import { User, Lock, Loader2, LogIn, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 export function LoginDialog() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -44,12 +46,18 @@ export function LoginDialog() {
       <div className="w-full max-w-md overflow-hidden bg-white/10 border border-white/20 shadow-2xl rounded-2xl backdrop-blur-md animate-in zoom-in-95 duration-300">
         <div className="relative p-8 bg-gradient-to-br from-blue-500/10 to-purple-500/10">
           <div className="flex flex-col items-center mb-8">
-            <div className="p-3 mb-4 bg-blue-500/20 rounded-full ring-8 ring-blue-500/5">
-              <LogIn className="w-8 h-8 text-blue-400" />
+            <div className="p-1 mb-4 bg-white/5 rounded-2xl ring-8 ring-white/5 overflow-hidden">
+              <Image
+                src="/paiepro.png"
+                alt="PaiePro Logo"
+                width={64}
+                height={64}
+                className="w-16 h-16 object-contain"
+              />
             </div>
-            <h2 className="text-2xl font-bold text-white text-center">Connexion</h2>
-            <p className="text-sm text-gray-400 mt-2 text-center">
-              Accédez à votre assistant d'analyse de fiches de paie
+            <h2 className="text-3xl font-extrabold text-white text-center tracking-tight">Connexion</h2>
+            <p className="text-sm text-gray-400 mt-2 text-center max-w-[280px]">
+              Votre assistant intelligent d'analyse de fiches de paie
             </p>
           </div>
 
@@ -78,13 +86,24 @@ export function LoginDialog() {
                   <Lock className="h-5 w-5 text-gray-500 group-focus-within:text-blue-400 transition-colors" />
                 </div>
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2.5 bg-black/20 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
+                  className="block w-full pl-10 pr-12 py-2.5 bg-black/20 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
                   placeholder="••••••••"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-blue-400 transition-colors focus:outline-none"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
               </div>
             </div>
 

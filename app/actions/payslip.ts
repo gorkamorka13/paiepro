@@ -54,6 +54,8 @@ export async function processPayslipAction(
                     taxAmount: 0,
                     hoursWorked: 0,
                     extractedJson: {},
+                    inputTokens: null,
+                    outputTokens: null,
                 },
             });
 
@@ -204,9 +206,10 @@ export async function getUsageStatsAction() {
             }
         });
 
-        const totalStorageBytes = stats._sum.fileSize || 0;
-        const totalTokens = (stats._sum.inputTokens || 0) + (stats._sum.outputTokens || 0);
+        const totalStorageBytes = stats._sum?.fileSize || 0;
+        const totalTokens = (stats._sum?.inputTokens || 0) + (stats._sum?.outputTokens || 0);
         const limitBytes = 250 * 1024 * 1024; // 250MB
+        const fileCount = stats._count?.id || 0;
 
         return {
             success: true,
@@ -214,7 +217,7 @@ export async function getUsageStatsAction() {
                 totalStorageBytes,
                 totalTokens,
                 limitBytes,
-                fileCount: stats._count.id
+                fileCount
             }
         };
     } catch (error) {

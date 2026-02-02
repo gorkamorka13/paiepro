@@ -72,6 +72,8 @@ export async function extractDataTraditional(fileUrl: string): Promise<AIExtract
                 return aiExtractedDataSchema.parse({
                     ...result,
                     aiModel: 'Extraction Traditionnelle ⚙️',
+                    inputTokens: null,
+                    outputTokens: null,
                 }) as AIExtractedData;
             } catch (err) {
                 console.warn('⚠️ Validation Zod échouée pour extraction traditionnelle', err);
