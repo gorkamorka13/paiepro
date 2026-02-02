@@ -1,9 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-    experimental: {
-        serverComponentsExternalPackages: ['recharts'],
-    },
+    serverExternalPackages: ['recharts'],
 };
 
 export default nextConfig;
