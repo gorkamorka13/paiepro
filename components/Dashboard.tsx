@@ -11,11 +11,14 @@ import useSWR from 'swr';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
 
-export function Dashboard() {
+export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[] }) {
     const { data: payslips = [], error, isLoading, mutate: revalidate } = useSWR<Payslip[]>('payslips', async () => {
         const result = await getPayslipsAction();
         if (!result.success) throw new Error(result.error);
         return result.data || [];
+    }, {
+        fallbackData: initialPayslips,
+        revalidateOnMount: true,
     });
     const [editingPayslip, setEditingPayslip] = useState<Payslip | null>(null);
     const [sortConfig, setSortConfig] = useState({ key: 'period', direction: 'desc' as 'asc' | 'desc' });

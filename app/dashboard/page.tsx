@@ -1,8 +1,13 @@
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import DashboardWrapper from '@/components/DashboardWrapper';
+import { getPayslipsAction } from '@/app/actions/payslip';
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+    // Pre-fetch data on the server
+    const result = await getPayslipsAction();
+    const initialPayslips = result.success ? result.data || [] : [];
+
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
             <div className="container mx-auto px-4 py-8">
@@ -24,7 +29,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Dashboard Component */}
-                <DashboardWrapper />
+                <DashboardWrapper initialPayslips={initialPayslips} />
             </div>
         </div>
     );

@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import React from 'react';
+import type { Payslip } from '@/types/payslip';
 
 const Dashboard = dynamic(() => import('./Dashboard').then((mod) => mod.Dashboard), {
     ssr: false,
@@ -12,6 +13,6 @@ const Dashboard = dynamic(() => import('./Dashboard').then((mod) => mod.Dashboar
     ),
 });
 
-export default function DashboardWrapper() {
-    return <Dashboard />;
+export default function DashboardWrapper({ initialPayslips }: { initialPayslips: Payslip[] }) {
+    return <Dashboard initialPayslips={initialPayslips} />;
 }
