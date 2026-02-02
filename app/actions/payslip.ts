@@ -129,6 +129,10 @@ export async function processPayslipAction(
 // Action pour récupérer tous les bulletins
 export async function getPayslipsAction(): Promise<ActionResult<Payslip[]>> {
     try {
+        console.log('🔍 getPayslipsAction: Starting to fetch payslips...');
+        console.log('🔍 Database URL exists:', !!process.env.DATABASE_URL);
+        console.log('🔍 Environment:', process.env.NODE_ENV);
+
         const payslips = await prisma.payslip.findMany({
             orderBy: [
                 { periodYear: 'desc' },
@@ -137,9 +141,14 @@ export async function getPayslipsAction(): Promise<ActionResult<Payslip[]>> {
             ],
         });
 
+        console.log(`✅ Successfully fetched ${payslips.length} payslips`);
         return { success: true, data: payslips as Payslip[] };
     } catch (error) {
-        console.error('❌ Erreur lors de la récupération:', error);
+        console.error('❌ Error in getPayslipsAction:', error);
+        console.error('❌ Error name:', error instanceof Error ? error.name : 'Unknown');
+        console.error('❌ Error message:', error instanceof Error ? error.message : String(error));
+        console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+
         return {
             success: false,
             error: `Impossible de récupérer les bulletins: ${error instanceof Error ? error.message : String(error)}`,
