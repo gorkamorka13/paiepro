@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import DashboardClient from '@/components/DashboardClient';
-// import { getPayslipsAction } from '@/app/actions/payslip';
+import { getPayslipsAction } from '@/app/actions/payslip';
 
 export default async function DashboardPage() {
     // Pre-fetch data on the server
