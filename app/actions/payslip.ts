@@ -142,7 +142,7 @@ export async function getPayslipsAction(): Promise<ActionResult<Payslip[]>> {
         console.error('❌ Erreur lors de la récupération:', error);
         return {
             success: false,
-            error: 'Impossible de récupérer les bulletins',
+            error: `Impossible de récupérer les bulletins: ${error instanceof Error ? error.message : String(error)}`,
             data: []
         };
     }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import Image from "next/image";
 import { User, Lock, Loader2, LogIn, AlertCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 export function LoginDialog() {
@@ -12,6 +13,7 @@ export function LoginDialog() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +36,8 @@ export function LoginDialog() {
       } else {
         console.log("✅ [Login] Success!");
         toast.success("Connexion réussie !");
-        window.location.reload();
+        router.refresh(); // Refresh server components to pick up new session
+        // window.location.reload(); // Fallback if needed
       }
     } catch (err) {
       console.error("🔥 [Login] Error:", err);

@@ -120,7 +120,9 @@ export function Dashboard() {
         return (
             <div className="flex flex-col items-center justify-center p-12 bg-red-50 dark:bg-red-900/20 rounded-2xl border border-red-100 dark:border-red-900/30">
                 <p className="text-red-600 dark:text-red-400 font-bold text-lg mb-2">Impossible de charger les données</p>
-                <p className="text-red-500 dark:text-red-400/70 mb-6 text-sm">Vérifiez votre connexion ou contactez le support.</p>
+                <p className="text-red-500 dark:text-red-400/70 mb-6 text-sm">
+                    {error instanceof Error ? error.message : 'Vérifiez votre connexion ou contactez le support.'}
+                </p>
                 <button
                     onClick={() => revalidate()}
                     className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all font-bold shadow-lg shadow-red-500/20"
