@@ -3,7 +3,7 @@ import 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import type { Payslip } from '@prisma/client';
+import type { Payslip } from '@/types/payslip';
 
 // Extend jsPDF with autotable types
 declare module 'jspdf' {

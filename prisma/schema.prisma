@@ -7,18 +7,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
-
 model Payslip {
   id               String   @id @default(cuid())
-
-  // Fichiers
   fileUrl          String
   fileName         String
   fileSize         Int
   mimeType         String
-
-  // Période et Employé
   periodMonth      Int?
   periodYear       Int?
   employeeName     String?
@@ -26,26 +20,21 @@ model Payslip {
   employerName     String?
   siretNumber      String?
   urssafNumber     String?
-
-  // Montants Extraits
-  netToPay         Float    @db.DoublePrecision // Net à payer après impôts
-  netBeforeTax     Float    @db.DoublePrecision @default(0) // Net à payer avant impôts
-  netTaxable       Float    @db.DoublePrecision @default(0) // Net imposable
-  grossSalary      Float    @db.DoublePrecision // Salaire brut
-  taxAmount        Float    @db.DoublePrecision // Montant des impôts
-  hoursWorked      Float    @db.DoublePrecision // Heures travaillées
-  hourlyNetTaxable Float    @db.DoublePrecision @default(0) // Salaire horaire net imposable
-
-  // Métadonnées
+  netToPay         Float
+  netBeforeTax     Float    @default(0)
+  netTaxable       Float    @default(0)
+  grossSalary      Float
+  taxAmount        Float
+  hoursWorked      Float
+  hourlyNetTaxable Float    @default(0)
   extractedJson    Json
-  processingStatus String   @default("completed") // completed | failed | processing
+  processingStatus String   @default("completed")
   errorMessage     String?
   aiModel          String?
-  inputTokens      Int?
-  outputTokens     Int?
-
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+  inputTokens      Int?
+  outputTokens     Int?
 
   @@index([periodYear, periodMonth])
   @@index([createdAt])
@@ -53,12 +42,12 @@ model Payslip {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  username      String?   @unique
-  password      String?
-  role          String    @default("USER") // ADMIN | USER
-  image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id        String   @id @default(cuid())
+  name      String?
+  username  String?  @unique
+  password  String?
+  role      String   @default("USER")
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

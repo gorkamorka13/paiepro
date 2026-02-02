@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { getPayslipsAction, deletePayslipAction, updatePayslipAction } from '@/app/actions/payslip';
-import { Trash2, ExternalLink, Users, Edit2, X, Save, FileSpreadsheet, FileText } from 'lucide-react';
+import { Trash2, ExternalLink, Users, Edit2, X, Save, FileSpreadsheet, FileText, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Payslip, UpdatePayslipData } from '@/types/payslip';
 import { exportToExcel, exportToPDF } from '@/lib/export-utils';
@@ -18,6 +18,24 @@ export function Dashboard() {
         return result.data || [];
     });
     const [editingPayslip, setEditingPayslip] = useState<Payslip | null>(null);
+    const [sortConfig, setSortConfig] = useState({ key: 'period', direction: 'desc' as 'asc' | 'desc' });
+
+    // Sorting Logic
+    const sortedPayslips = [...payslips].sort((a, b) => {
+        if (sortConfig.key === 'period') {
+            const dateA = (a.periodYear || 0) * 100 + (a.periodMonth || 0);
+            const dateB = (b.periodYear || 0) * 100 + (b.periodMonth || 0);
+            return sortConfig.direction === 'asc' ? dateA - dateB : dateB - dateA;
+        }
+        return 0;
+    });
+
+    const toggleSort = () => {
+        setSortConfig(current => ({
+            key: 'period',
+            direction: current.direction === 'asc' ? 'desc' : 'asc'
+        }));
+    };
 
     const handleDelete = async (id: string) => {
         if (!confirm('Supprimer ce bulletin ?')) return;
@@ -171,15 +189,24 @@ export function Dashboard() {
                 )
             }
 
-
             {/* Tableau des bulletins */}
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
                             <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Période
+                                <th
+                                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                                    onClick={toggleSort}
+                                >
+                                    <div className="flex items-center gap-1">
+                                        Période
+                                        {sortConfig.direction === 'asc' ? (
+                                            <ArrowUp className="w-3 h-3 text-blue-500" />
+                                        ) : (
+                                            <ArrowDown className="w-3 h-3 text-blue-500" />
+                                        )}
+                                    </div>
                                 </th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Employé
@@ -199,7 +226,7 @@ export function Dashboard() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                            {payslips.map((payslip) => {
+                            {sortedPayslips.map((payslip) => {
 
                                 return (
                                     <tr key={payslip.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/50">
@@ -375,30 +402,33 @@ function EditModal({
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Employé</label>
+                <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto max-h-[60vh] pr-2 custom-scrollbar">
+                    <div className="grid grid-cols-12 gap-3">
+                        {/* Identité - Ligne 1 */}
+                        <div className="col-span-6 md:col-span-5 space-y-1">
+                            <label className="text-xs font-semibold text-gray-500 uppercase">Employé</label>
                             <input
                                 type="text"
                                 name="employeeName"
                                 value={formData.employeeName || ''}
                                 onChange={handleChange}
-                                className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all"
                             />
                         </div>
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Employeur</label>
+                        <div className="col-span-6 md:col-span-5 space-y-1">
+                            <label className="text-xs font-semibold text-gray-500 uppercase">Employeur</label>
                             <input
                                 type="text"
                                 name="employerName"
                                 value={formData.employerName || ''}
                                 onChange={handleChange}
-                                className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all"
                             />
                         </div>
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Mois</label>
+
+                        {/* Période - Ligne 1 (Fin) */}
+                        <div className="col-span-6 md:col-span-1 space-y-1">
+                            <label className="text-xs font-semibold text-gray-500 uppercase">Mois</label>
                             <input
                                 type="number"
                                 name="periodMonth"
@@ -406,134 +436,137 @@ function EditModal({
                                 max="12"
                                 value={formData.periodMonth || ''}
                                 onChange={handleChange}
-                                className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all text-center"
                             />
                         </div>
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Année</label>
+                        <div className="col-span-6 md:col-span-1 space-y-1">
+                            <label className="text-xs font-semibold text-gray-500 uppercase">Année</label>
                             <input
                                 type="number"
                                 name="periodYear"
                                 value={formData.periodYear || ''}
                                 onChange={handleChange}
-                                className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all text-center"
                             />
                         </div>
-                        <div className="space-y-2 col-span-2">
-                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Adresse Employé</label>
+
+                        {/* Adresse - Ligne 2 */}
+                        <div className="col-span-12 space-y-1">
+                            <label className="text-xs font-semibold text-gray-500 uppercase">Adresse Employé</label>
                             <input
                                 type="text"
                                 name="employeeAddress"
                                 value={formData.employeeAddress || ''}
                                 onChange={handleChange}
-                                className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all"
                             />
                         </div>
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">SIRET</label>
+
+                        {/* Admin - Ligne 3 */}
+                        <div className="col-span-6 space-y-1">
+                            <label className="text-xs font-semibold text-gray-500 uppercase">SIRET</label>
                             <input
                                 type="text"
                                 name="siretNumber"
                                 value={formData.siretNumber || ''}
                                 onChange={handleChange}
-                                className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all font-mono"
                             />
                         </div>
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">URSSAF</label>
+                        <div className="col-span-6 space-y-1">
+                            <label className="text-xs font-semibold text-gray-500 uppercase">URSSAF</label>
                             <input
                                 type="text"
                                 name="urssafNumber"
                                 value={formData.urssafNumber || ''}
                                 onChange={handleChange}
-                                className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-all font-mono"
                             />
                         </div>
                     </div>
 
-                    <div className="border-t border-gray-100 dark:border-gray-700 pt-6">
-                        <h4 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-4">Montants</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="space-y-2">
-                                <label className="text-xs font-semibold text-blue-600">Salaire Brut</label>
+                    <div className="border-t border-gray-100 dark:border-gray-700 pt-4">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-blue-600 mb-3 flex items-center gap-2">
+                             Détails Financiers
+                        </h4>
+                        <div className="grid grid-cols-12 gap-3">
+                            <div className="col-span-4 space-y-1">
+                                <label className="text-[10px] font-bold text-gray-500 uppercase">Brut</label>
                                 <input
                                     type="number"
                                     step="0.01"
                                     name="grossSalary"
                                     value={formData.grossSalary}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-2 rounded-lg border-2 border-blue-100 dark:border-blue-900/30 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-bold"
+                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 outline-none font-bold text-right"
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-semibold text-green-600">Net à Payer</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    name="netToPay"
-                                    value={formData.netToPay}
-                                    onChange={handleChange}
-                                    className="w-full px-4 py-2 rounded-lg border-2 border-green-100 dark:border-green-900/30 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-green-500 outline-none transition-all font-bold"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-xs font-semibold text-gray-500">Net Imposable</label>
+                            <div className="col-span-4 space-y-1">
+                                <label className="text-[10px] font-bold text-gray-500 uppercase">Net Imposable</label>
                                 <input
                                     type="number"
                                     step="0.01"
                                     name="netTaxable"
                                     value={formData.netTaxable || ''}
                                     onChange={handleChange}
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none text-right"
                                 />
                             </div>
-                        </div>
-                    </div>
+                            <div className="col-span-4 space-y-1">
+                                <label className="text-[10px] font-bold text-green-600 uppercase">Net à Payer</label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    name="netToPay"
+                                    value={formData.netToPay}
+                                    onChange={handleChange}
+                                    className="w-full px-3 py-2 rounded-lg border-2 border-green-500/20 bg-green-50/50 dark:bg-green-900/20 focus:ring-2 focus:ring-green-500 outline-none font-black text-green-700 dark:text-green-400 text-right"
+                                />
+                            </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pb-4">
-                        <div className="space-y-2">
-                            <label className="text-xs font-medium text-gray-500">Heures</label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                name="hoursWorked"
-                                value={formData.hoursWorked || ''}
-                                onChange={handleChange}
-                                className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-xs font-medium text-gray-500">Impôts</label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                name="taxAmount"
-                                value={formData.taxAmount || ''}
-                                onChange={handleChange}
-                                className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-xs font-medium text-gray-500">Av. Impôt</label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                name="netBeforeTax"
-                                value={formData.netBeforeTax || ''}
-                                onChange={handleChange}
-                                className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-xs font-medium text-gray-500">Taux Hor.</label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                name="hourlyNetTaxable"
-                                value={formData.hourlyNetTaxable || ''}
-                                onChange={handleChange}
-                                className="w-full px-3 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none"
-                            />
+                            {/* Ligne Secondaire */}
+                            <div className="col-span-3 space-y-1">
+                                <label className="text-[10px] font-medium text-gray-400 uppercase">Heures</label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    name="hoursWorked"
+                                    value={formData.hoursWorked || ''}
+                                    onChange={handleChange}
+                                    className="w-full px-2 py-1.5 text-xs rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none text-right"
+                                />
+                            </div>
+                            <div className="col-span-3 space-y-1">
+                                <label className="text-[10px] font-medium text-gray-400 uppercase">Taux Hor. (Auto)</label>
+                                <input
+                                    type="number"
+                                    readOnly
+                                    value={(formData.hoursWorked || 0) > 0 ? ((formData.netToPay || 0) / (formData.hoursWorked || 1)).toFixed(2) : '-'}
+                                    className="w-full px-2 py-1.5 text-xs rounded border border-gray-100 dark:border-gray-800 bg-gray-100 dark:bg-gray-800 text-gray-500 outline-none cursor-not-allowed text-right italic"
+                                />
+                            </div>
+                            <div className="col-span-3 space-y-1">
+                                <label className="text-[10px] font-medium text-gray-400 uppercase">Impôts</label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    name="taxAmount"
+                                    value={formData.taxAmount || ''}
+                                    onChange={handleChange}
+                                    className="w-full px-2 py-1.5 text-xs rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none text-right"
+                                />
+                            </div>
+                            <div className="col-span-3 space-y-1">
+                                <label className="text-[10px] font-medium text-gray-400 uppercase">Av. Impôt</label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    name="netBeforeTax"
+                                    value={formData.netBeforeTax || ''}
+                                    onChange={handleChange}
+                                    className="w-full px-2 py-1.5 text-xs rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none text-right"
+                                />
+                            </div>
                         </div>
                     </div>
                 </form>
