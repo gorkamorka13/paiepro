@@ -27,6 +27,19 @@ export async function processPayslipAction(
             };
         }
 
+        // 1b. [STRICT] Vérification Pré-Upload (Doublon de nom de fichier)
+        const existingFile = await prisma.payslip.findFirst({
+            where: { fileName: file.name }
+        });
+
+        if (existingFile) {
+            console.warn(`🛑 Rejet pré-upload : Le fichier "${file.name}" existe déjà.`);
+            return {
+                success: false,
+                error: `Le fichier "${file.name}" a déjà été importé.`,
+            };
+        }
+
         // 2. Upload vers Vercel Blob
         const blob = await put(file.name, file, {
             access: 'public',
@@ -86,20 +99,32 @@ export async function processPayslipAction(
             throw new Error(`Données extraites invalides : ${validationErr instanceof Error ? validationErr.message : 'Détails inconnus'}`);
         }
 
-        // 4b. Détection des doublons
+        // 4b. Détection des doublons (Post-Analyse)
+        // Vérifie si un bulletin existe déjà pour le même employé, le même employeur et la même période.
+        // Cela empêche d'avoir deux fichiers différents (PDF scanné vs PDF natif) pour la même paie.
         const duplicate = await prisma.payslip.findFirst({
             where: {
                 employeeName: payslipData.employeeName,
                 employerName: payslipData.employerName,
                 periodMonth: payslipData.periodMonth,
                 periodYear: payslipData.periodYear,
-                netToPay: payslipData.netToPay,
+                // On pourrait ajouter netToPay ici aussi, mais employé+employeur+date devrait suffire pour l'unicité
             },
         });
 
         if (duplicate) {
-            console.warn(`⚠️ Doublon détecté pour ${file.name}.`);
-            throw new Error("Ce bulletin a déjà été importé (Doublon détecté).");
+            console.warn(`⚠️ Doublon détecté après analyse pour ${file.name} (correspond à ID: ${duplicate.id}).`);
+
+            // CRITIQUE: Suppression immédiate du blob car c'est un doublon confirmé
+            if (blobUrl) {
+                await del(blobUrl);
+                blobUrl = null; // Pour éviter une double tentative de suppression dans le catch
+            }
+
+            return {
+                success: false,
+                error: `Ce bulletin existe déjà pour ${payslipData.employeeName} (${payslipData.periodMonth}/${payslipData.periodYear}).`,
+            };
         }
 
         const payslip = await prisma.payslip.create({
