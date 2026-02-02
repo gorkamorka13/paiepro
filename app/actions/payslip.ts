@@ -247,4 +247,46 @@ export async function getUsageStatsAction() {
     }
 }
 
+// Action pour supprimer plusieurs bulletins
+export async function deleteMultiplePayslipsAction(ids: string[]): Promise<ActionResult<{ count: number }>> {
+    try {
+        // 1. Trouver les bulletins pour avoir les URLs des fichiers
+        const payslips = await prisma.payslip.findMany({
+            where: { id: { in: ids } },
+            select: { fileUrl: true, fileName: true }
+        });
 
+        if (payslips.length === 0) {
+            return { success: false, error: 'Aucun bulletin trouvé' };
+        }
+
+        // 2. Supprimer du storage les fichiers dont l'URL existe
+        const urlsToDelete = payslips
+            .map(p => p.fileUrl)
+            .filter((url): url is string => !!url);
+
+        if (urlsToDelete.length > 0) {
+            try {
+                // del() accepte un tableau d'URLs
+                await del(urlsToDelete);
+            } catch (blobError) {
+                console.error(`⚠️ Erreur suppression groupée blobs:`, blobError);
+            }
+        }
+
+        // 3. Supprimer de la DB
+        await prisma.payslip.deleteMany({
+            where: { id: { in: ids } },
+        });
+
+        revalidatePath('/dashboard');
+
+        return { success: true, data: { count: ids.length } };
+    } catch (error) {
+        console.error('❌ Erreur lors de la suppression groupée:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Impossible de supprimer les bulletins'
+        };
+    }
+}

@@ -9,6 +9,7 @@ import { processPayslipAction } from '@/app/actions/payslip';
 type FileStatus = {
     file: File;
     status: 'pending' | 'uploading' | 'success' | 'error';
+    stage?: 'upload' | 'analysis' | 'save';
     progress: number;
     error?: string;
     id?: string;
@@ -44,12 +45,23 @@ export function UploadZone() {
             try {
                 setFiles(prev => {
                     const updated = [...prev];
-                    updated[index] = { ...updated[index], status: 'uploading', progress: 50 };
+                    updated[index] = { ...updated[index], status: 'uploading', stage: 'upload', progress: 30 };
                     return updated;
                 });
 
                 const formData = new FormData();
                 formData.append('file', fileStatus.file);
+
+                // Simulation de passage à l'analyse car l'appel serveur est global
+                setTimeout(() => {
+                    setFiles(prev => {
+                        const updated = [...prev];
+                        if (updated[index].status === 'uploading') {
+                            updated[index] = { ...updated[index], stage: 'analysis', progress: 65 };
+                        }
+                        return updated;
+                    });
+                }, 1500);
 
                 const result = await processPayslipAction(formData);
 
@@ -59,6 +71,7 @@ export function UploadZone() {
                         updated[index] = {
                             ...updated[index],
                             status: 'success',
+                            stage: 'save',
                             progress: 100,
                             id: result.data?.id,
                         };
@@ -193,11 +206,21 @@ export function UploadZone() {
                                     </p>
 
                                     {fileStatus.status === 'uploading' && (
-                                        <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
-                                            <div
-                                                className="bg-blue-600 h-2 rounded-full transition-all"
-                                                style={{ width: `${fileStatus.progress}%` }}
-                                            />
+                                        <div className="space-y-1.5 mt-2">
+                                            <div className="flex justify-between text-[10px] items-center">
+                                                <span className="text-blue-600 font-bold uppercase tracking-wider animate-pulse">
+                                                    {fileStatus.stage === 'upload' && 'Téléversement...'}
+                                                    {fileStatus.stage === 'analysis' && 'Analyse IA en cours...'}
+                                                    {fileStatus.stage === 'save' && 'Enregistrement...'}
+                                                </span>
+                                                <span className="text-gray-400 font-mono">{fileStatus.progress}%</span>
+                                            </div>
+                                            <div className="w-full bg-gray-100 dark:bg-gray-900 rounded-full h-1.5 overflow-hidden ring-1 ring-blue-500/10">
+                                                <div
+                                                    className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full transition-all duration-700 ease-in-out shadow-[0_0_10px_rgba(59,130,246,0.2)]"
+                                                    style={{ width: `${fileStatus.progress}%` }}
+                                                />
+                                            </div>
                                         </div>
                                     )}
 

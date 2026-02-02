@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getPayslipsAction, deletePayslipAction, updatePayslipAction } from '@/app/actions/payslip';
-import { Trash2, ExternalLink, Users, Edit2, X, Save, FileSpreadsheet, FileText, ArrowUp, ArrowDown } from 'lucide-react';
+import { getPayslipsAction, deletePayslipAction, deleteMultiplePayslipsAction, updatePayslipAction } from '@/app/actions/payslip';
+import { Trash2, ExternalLink, Users, Edit2, X, Save, FileSpreadsheet, FileText, ArrowUp, ArrowDown, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Payslip, UpdatePayslipData } from '@/types/payslip';
 import useSWR from 'swr';
 import { ClientChart } from './ClientChart';
+import { FinancialTrendsChart } from './FinancialTrendsChart';
 import { formatName } from '@/lib/format-utils';
 
 export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[] }) {
@@ -23,9 +24,21 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
     const [editingPayslip, setEditingPayslip] = useState<Payslip | null>(null);
     const [sortConfig, setSortConfig] = useState({ key: 'period', direction: 'desc' as 'asc' | 'desc' });
     const [selectedPayslips, setSelectedPayslips] = useState<Set<string>>(new Set());
+    const [searchTerm, setSearchTerm] = useState('');
 
     // Sorting Logic
-    const sortedPayslips = [...payslips].sort((a, b) => {
+    // Search and Filtering Logic
+    const filteredPayslips = payslips.filter(p => {
+        const search = searchTerm.toLowerCase();
+        return (
+            (p.employerName || '').toLowerCase().includes(search) ||
+            (p.employeeName || '').toLowerCase().includes(search) ||
+            (p.siretNumber || '').toLowerCase().includes(search) ||
+            (p.urssafNumber || '').toLowerCase().includes(search)
+        );
+    });
+
+    const sortedPayslips = [...filteredPayslips].sort((a, b) => {
         if (sortConfig.key === 'period') {
             const dateA = (a.periodYear || 0) * 100 + (a.periodMonth || 0);
             const dateB = (b.periodYear || 0) * 100 + (b.periodMonth || 0);
@@ -54,6 +67,20 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
                 newSelection.delete(id);
                 setSelectedPayslips(newSelection);
             }
+        } else {
+            toast.error(result.error);
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        const count = selectedPayslips.size;
+        if (!confirm(`Supprimer ces ${count} bulletins définitivement ?`)) return;
+
+        const result = await deleteMultiplePayslipsAction(Array.from(selectedPayslips));
+        if (result.success) {
+            toast.success(`${count} bulletins supprimés`);
+            setSelectedPayslips(new Set());
+            revalidate();
         } else {
             toast.error(result.error);
         }
@@ -113,6 +140,27 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
         }))
         .sort((a, b) => b.value - a.value);
 
+    // Préparer les données pour l'évolution temporelle
+    const timelineDataMap = payslips.reduce((acc, p) => {
+        if (!p.periodYear || !p.periodMonth) return acc;
+        const key = `${p.periodYear}-${String(p.periodMonth).padStart(2, '0')}`;
+        if (!acc[key]) {
+            acc[key] = { net: 0, gross: 0, count: 0 };
+        }
+        acc[key].net += p.netToPay;
+        acc[key].gross += p.grossSalary;
+        acc[key].count++;
+        return acc;
+    }, {} as Record<string, { net: number, gross: number, count: number }>);
+
+    const timelineData = Object.entries(timelineDataMap)
+        .map(([period, values]) => ({
+            period,
+            net: values.net,
+            gross: values.gross,
+        }))
+        .sort((a, b) => a.period.localeCompare(b.period));
+
     if (isLoading) {
         return (
             <div className="flex items-center justify-center h-64">
@@ -141,21 +189,46 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
     return (
         <div className="space-y-8">
 
-            <div className="flex gap-3 items-center">
-                <button
-                    onClick={handleExportExcel}
-                    className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors shadow-sm"
-                >
-                    <FileSpreadsheet className="w-4 h-4" />
-                    <span>Exporter Excel {selectedPayslips.size > 0 && `(${selectedPayslips.size})`}</span>
-                </button>
-                <button
-                    onClick={handleExportPDF}
-                    className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors shadow-sm"
-                >
-                    <FileText className="w-4 h-4" />
-                    <span>Exporter PDF {selectedPayslips.size > 0 && `(${selectedPayslips.size})`}</span>
-                </button>
+            <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
+                <div className="flex gap-3 items-center w-full md:w-auto">
+                    <button
+                        onClick={handleExportExcel}
+                        className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors shadow-sm text-sm"
+                    >
+                        <FileSpreadsheet className="w-4 h-4" />
+                        <span className="hidden sm:inline">Excel</span> {selectedPayslips.size > 0 && `(${selectedPayslips.size})`}
+                    </button>
+                    <button
+                        onClick={handleExportPDF}
+                        className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors shadow-sm text-sm"
+                    >
+                        <FileText className="w-4 h-4" />
+                        <span className="hidden sm:inline">PDF</span> {selectedPayslips.size > 0 && `(${selectedPayslips.size})`}
+                    </button>
+
+                    {selectedPayslips.size > 0 && (
+                        <button
+                            onClick={handleBulkDelete}
+                            className="flex items-center gap-2 px-4 py-2 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded-lg transition-all shadow-sm text-sm font-bold border border-rose-200 animate-in zoom-in duration-200"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            <span>Supprimer</span>
+                        </button>
+                    )}
+                </div>
+
+                <div className="relative w-full md:w-72">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Search className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <input
+                        type="text"
+                        placeholder="Rechercher un client, SIRET..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                    />
+                </div>
             </div>
 
             {/* Statistiques */}
@@ -352,8 +425,11 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
                 )}
             </div>
 
-            {/* Répartition par Client */}
-            <ClientChart clientData={clientData} />
+            {/* Dashboard Visualizations */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                <ClientChart clientData={clientData} />
+                <FinancialTrendsChart timelineData={timelineData} />
+            </div>
 
             {/* Modal d'édition */}
             {
