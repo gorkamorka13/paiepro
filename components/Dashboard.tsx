@@ -6,7 +6,7 @@ import { getPayslipsAction, deletePayslipAction, updatePayslipAction } from '@/a
 import { Trash2, ExternalLink, Users, Edit2, X, Save, FileSpreadsheet, FileText, ArrowUp, ArrowDown } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Payslip, UpdatePayslipData } from '@/types/payslip';
-import { exportToExcel, exportToPDF } from '@/lib/export-utils';
+// import { exportToExcel, exportToPDF } from '@/lib/export-utils';
 import useSWR from 'swr';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
@@ -75,17 +75,19 @@ export function Dashboard() {
         setSelectedPayslips(newSelection);
     };
 
-    const handleExportExcel = () => {
+    const handleExportExcel = async () => {
         const dataToExport = selectedPayslips.size > 0
             ? sortedPayslips.filter(p => selectedPayslips.has(p.id))
             : sortedPayslips;
+        const { exportToExcel } = await import('@/lib/export-utils');
         exportToExcel(dataToExport);
     };
 
-    const handleExportPDF = () => {
+    const handleExportPDF = async () => {
         const dataToExport = selectedPayslips.size > 0
             ? sortedPayslips.filter(p => selectedPayslips.has(p.id))
             : sortedPayslips;
+        const { exportToPDF } = await import('@/lib/export-utils');
         exportToPDF(dataToExport);
     };
 
