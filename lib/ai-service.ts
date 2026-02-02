@@ -3,32 +3,32 @@ import { aiExtractedDataSchema, type AIExtractedData } from './validations';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
-const SYSTEM_PROMPT = `Tu es un expert en extraction de données de bulletins de paie français.
+const SYSTEM_PROMPT = `Tu es un expert en extraction de données de bulletins de paie français (modèle 2024 inclus).
 Analyse le document fourni et extrais UNIQUEMENT les informations suivantes au format JSON strict :
 
 {
-  "employeeName": "Nom complet de l'employé (ex: M. BICHE Arnaud)",
-  "employeeAddress": "Adresse postale complète de l'employé",
-  "employerName": "Nom de l'entreprise employeur",
-  "siretNumber": "Numéro SIRET de l'employeur (14 chiffres)",
-  "urssafNumber": "Numéro URSSAF / Compte employeur",
-  "periodMonth": 1-12 (numéro du mois),
-  "periodYear": 2024 (année en YYYY),
-  "netToPay": 2345.67 (Net à payer après impôts),
-  "netBeforeTax": 2500.00 (Net à payer avant impôts),
-  "netTaxable": 2600.00 (Net imposable),
-  "grossSalary": 3200.00 (Salaire brut),
-  "taxAmount": 154.33 (Montant de l'impôt sur le revenu / retenue à la source),
-  "hoursWorked": 151.67 (Heures travaillées),
-  "hourlyNetTaxable": 17.15 (Salaire horaire net imposable)
+  "employeeName": "NOM Prénom (ex: M. BICHE Arnaud)",
+  "employeeAddress": "Adresse complète",
+  "employerName": "Raison sociale employeur",
+  "siretNumber": "SIRET (14 chiffres)",
+  "urssafNumber": "N° URSSAF ou Compte Employeur",
+  "periodMonth": 1-12,
+  "periodYear": YYYY,
+  "netToPay": 1234.56,
+  "netBeforeTax": 1300.00,
+  "netTaxable": 1350.00,
+  "grossSalary": 1800.00,
+  "taxAmount": 50.00,
+  "hoursWorked": 151.67,
+  "hourlyNetTaxable": 15.00
 }
 
-RÈGLES STRICTES :
-- Réponds UNIQUEMENT avec du JSON valide, aucun texte explicatif
-- Pas de markdown, pas de \`\`\`json
-- Utilise null pour les valeurs manquantes
-- Les montants doivent être des nombres décimaux, pas des strings
-- Si une donnée est absente ou illisible, mets null`;
+CONSIGNES CRITIQUES :
+- PÉRIODE : Identifie la période de paie dans l'en-tête (ex: "Mois de Mars 2024" ou "du 01/03 au 31/03"). IGNORE les dates de signature ou d'impression en bas de page.
+- NET À PAYER : C'est le montant final viré sur le compte.
+- NET FISCAL : Cherche "Net Social Fiscal" ou "Net Imposable".
+- SIRET : Cherche un numéro de 14 chiffres, souvent près de l'adresse de l'employeur.
+- RÈGLE : Réponds UNIQUEMENT avec le JSON pur. Pas de markdown, pas de texte. Si une donnée est absente, mets null.`;
 
 export async function analyzeDocument(fileUrl: string): Promise<AIExtractedData & { aiModel: string; inputTokens?: number; outputTokens?: number }> {
     const modelId = 'gemini-2.5-flash';

@@ -37,6 +37,8 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
         { id: 10, name: 'Octobre' }, { id: 11, name: 'Novembre' }, { id: 12, name: 'Décembre' }
     ];
 
+    const hasFailed = payslips.some(p => p.processingStatus === 'failed');
+
     // Search and Filtering Logic
     const filteredPayslips = payslips.filter(p => {
         const search = searchTerm.toLowerCase();
@@ -46,7 +48,16 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
             (p.siretNumber || '').toLowerCase().includes(search) ||
             (p.urssafNumber || '').toLowerCase().includes(search)
         );
-        const matchesYear = selectedYear === 'all' || p.periodYear === Number(selectedYear);
+
+        let matchesYear = false;
+        if (selectedYear === 'all') {
+            matchesYear = true;
+        } else if (selectedYear === 'failed') {
+            matchesYear = p.processingStatus === 'failed';
+        } else {
+            matchesYear = p.periodYear === Number(selectedYear);
+        }
+
         const matchesMonth = selectedMonth === 'all' || p.periodMonth === Number(selectedMonth);
 
         return matchesSearch && matchesYear && matchesMonth;
@@ -239,6 +250,7 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
                         className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
                     >
                         <option value="all">Toutes les années</option>
+                        {hasFailed && <option value="failed" className="text-red-500 font-bold">⚠️ Échecs d'analyse</option>}
                         {availableYears.map(year => (
                             <option key={year} value={year}>{year}</option>
                         ))}
@@ -397,7 +409,11 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
                                         </td>
                                         <td className="px-4 py-4 whitespace-nowrap">
                                             <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{formatName(payslip.employerName) || 'Client inconnu'}</div>
-                                            {(payslip.siretNumber || payslip.urssafNumber) ? (
+                                            {(payslip.processingStatus === 'failed') ? (
+                                                <div className="text-[10px] text-red-500 font-bold bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded inline-block mt-1 animate-pulse" title={payslip.errorMessage || 'Erreur inconnue'}>
+                                                    ÉCHEC ANALYSE : {payslip.errorMessage?.slice(0, 30)}...
+                                                </div>
+                                            ) : (payslip.siretNumber || payslip.urssafNumber) ? (
                                                 <div className="text-xs text-gray-500 mt-1">
                                                     {payslip.siretNumber && (
                                                         <div className="flex items-center gap-1">

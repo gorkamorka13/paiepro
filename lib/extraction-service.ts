@@ -19,17 +19,17 @@ export async function extractDataTraditional(fileUrl: string): Promise<AIExtract
         const data = await pdf(buffer);
         const text = data.text;
 
-        // Patterns Regex pour les bulletins français standard
+        // Patterns Regex pour les bulletins français standard (plus robustes)
         const patterns = {
-            employeeName: /([A-Z\s]+)\n/i, // Très approximatif
-            employerName: /([A-Z\s0-9]+)\n/i, // Très approximatif
-            netToPay: /(?:NET\s+À\s+PAYER|NET\s+A\s+PAYER|NET\s+PAYE|À\s+PAYER)\s*[:\s]*([\d\s,.]+)/i,
-            netBeforeTax: /(?:NET\s+PAYER\s+AVANT\s+IMPÔT|NET\s+AVANT\s+PAS|NET\s+IMPÔTS?)\s*[:\s]*([\d\s,.]+)/i,
-            netTaxable: /(?:NET\s+IMPOSABLE|CUMUL\s+IMPOSABLE|NET\s+FISC)\s*[:\s]*([\d\s,.]+)/i,
-            grossSalary: /(?:SALAIRE\s+BRUT|TOTAL\s+BRUT|BRUT\s+DU\s+MOIS)\s*[:\s]*([\d\s,.]+)/i,
-            taxAmount: /(?:IMPÔT\s+SUR\s+LE\s+REVENU|RETENUE\s+À\s+LA\s+SOURCE|P\.A\.S|MONTANT\s+PAS)\s*[:\s]*([\d\s,.]+)/i,
-            hoursWorked: /(?:HEURES?\s+TRAVAILLÉES?|TOTAL\s+HEURES?|HEURES?\s+DU\s+MOIS|BASE\s+35H)\s*[:\s]*([\d\s,.]+)/i,
-            hourlyNetTaxable: /(?:TAUX\s+HORAIRE\s+NET\s+IMP|NET\s+HORAIRE)\s*[:\s]*([\d\s,.]+)/i,
+            employeeName: /(?:NOM|SALARIÉ|DESTINATAIRE)\s*[:\s]*([A-ZÀ-Ÿ\s]+)/i,
+            employerName: /(?:EMPLOYEUR|RAISON\s+SOCIALE)\s*[:\s]*([A-ZÀ-Ÿ0-9\s.-]+)/i,
+            netToPay: /(?:NET\s+À\s+PAYER|NET\s+A\s+PAYER|NET\s+PAYÉ|À\s+PAYER|NET\s+À\s+VERSER|NET\s+A\s+VERSER)\s*[:\s]*([\d\s,.]+(?:€|EUR)?)/i,
+            netBeforeTax: /(?:NET\s+PAYER\s+AVANT\s+IMPÔT|NET\s+AVANT\s+PAS|NET\s+IMPÔTS?|NET\s+AVANT\s+IMP|NET\s+IMPÔT\s+SUR\s+LE\s+REVENU)\s*[:\s]*([\d\s,.]+)/i,
+            netTaxable: /(?:NET\s+IMPOSABLE|CUMUL\s+IMPOSABLE|NET\s+FISC|NET\s+FISCAL)\s*[:\s]*([\d\s,.]+)/i,
+            grossSalary: /(?:SALAIRE\s+BRUT|TOTAL\s+BRUT|BRUT\s+DU\s+MOIS|TOTAL\s+DES\s+BRUTS)\s*[:\s]*([\d\s,.]+)/i,
+            taxAmount: /(?:IMPÔT\s+SUR\s+LE\s+REVENU|RETENUE\s+À\s+LA\s+SOURCE|P\.A\.S|MONTANT\s+PAS|PAS\s+PRÉLEVÉ)\s*[:\s]*([\d\s,.]+)/i,
+            hoursWorked: /(?:HEURES?\s+TRAVAILLÉES?|TOTAL\s+HEURES?|HEURES?\s+DU\s+MOIS|BASE\s+35H|NB\s+HEURES)\s*[:\s]*([\d\s,.]+)/i,
+            hourlyNetTaxable: /(?:TAUX\s+HORAIRE\s+NET\s+IMP|NET\s+HORAIRE|TAUX\s+HORAIRE)\s*[:\s]*([\d\s,.]+)/i,
         };
 
         const result: Partial<AIExtractedData> = {};
@@ -37,11 +37,27 @@ export async function extractDataTraditional(fileUrl: string): Promise<AIExtract
         // Extraire les montants numériques
         const parseAmount = (match: string | undefined): number => {
             if (!match) return 0;
-            // Nettoyer : enlever les espaces, remplacer virgule par point
-            return parseFloat(match.replace(/\s/g, '').replace(',', '.'));
+            // Nettoyer : enlever les symboles monétaires, les espaces insécables, etc.
+            const cleaned = match.replace(/[€$£\s]/g, '').replace(',', '.');
+            const value = parseFloat(cleaned);
+            return isNaN(value) ? 0 : value;
         };
 
         // Extraction par Regex
+        const textClean = text.replace(/\s+/g, ' '); // Normaliser les espaces pour faciliter la recherche
+
+        // SIRET (14 chiffres)
+        const siretMatch = text.match(/(?:SIRET|N°\s+SIRET)\s*[:\s]*(\d{14})/i) || text.match(/(\d{3}\s*\d{3}\s*\d{3}\s*\d{5})/);
+        if (siretMatch) {
+            result.siretNumber = (siretMatch[1] || siretMatch[0]).replace(/\s/g, '');
+        }
+
+        // URSSAF
+        const urssafMatch = text.match(/(?:URSSAF|N°\s+URSSAF|COMPTE\s+EMPLOYEUR)\s*[:\s]*([A-Z0-9\s]+)/i);
+        if (urssafMatch) {
+            result.urssafNumber = urssafMatch[1].trim();
+        }
+
         const netToPayMatch = text.match(patterns.netToPay);
         const netBeforeTaxMatch = text.match(patterns.netBeforeTax);
         const netTaxableMatch = text.match(patterns.netTaxable);
@@ -58,11 +74,18 @@ export async function extractDataTraditional(fileUrl: string): Promise<AIExtract
         result.hoursWorked = parseAmount(hoursMatch?.[1]);
         result.hourlyNetTaxable = parseAmount(hourlyMatch?.[1]);
 
-        // Détection de la période (MM/YYYY)
-        const periodMatch = text.match(/(?:DU|PÉRIODE|MOIS)\s*[:\s]*(\d{2})\/(\d{4})/i);
+        // Détection de la période (MM/YYYY ou MMM YYYY ou DD/MM/YYYY)
+        const periodMatch = text.match(/(?:DU|PÉRIODE|Période\s+du|Bulletin\s+du)\s*(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})/i) ||
+            text.match(/(?:DU|PÉRIODE|MOIS)\s*[:\s]*(\d{2})[\/\.-](\d{4})/i);
+
         if (periodMatch) {
-            result.periodMonth = parseInt(periodMatch[1]);
-            result.periodYear = parseInt(periodMatch[2]);
+            if (periodMatch.length === 4) { // DD/MM/YYYY variant
+                result.periodMonth = parseInt(periodMatch[2]);
+                result.periodYear = parseInt(periodMatch[3]);
+            } else { // MM/YYYY variant
+                result.periodMonth = parseInt(periodMatch[1]);
+                result.periodYear = parseInt(periodMatch[2]);
+            }
         }
 
         // Si on a les champs critiques, on valide

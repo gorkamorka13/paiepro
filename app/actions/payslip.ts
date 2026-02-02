@@ -12,6 +12,9 @@ import type { ActionResult } from '@/types/payslip';
 export async function processPayslipAction(
     formData: FormData
 ): Promise<ActionResult<Payslip>> {
+    let blobUrl: string | null = null;
+    let successfullySaved = false;
+
     try {
         // 1. Validation du fichier
         const file = formData.get('file') as File;
@@ -29,12 +32,13 @@ export async function processPayslipAction(
             access: 'public',
             addRandomSuffix: true,
         });
+        blobUrl = blob.url;
 
         // 3. Analyse IA (Automatique)
         let extractedData;
         try {
             // Utilise l'analyse intelligente (hybride : Classique -> IA si besoin)
-            extractedData = await analyzeDocumentHybrid(blob.url);
+            extractedData = await analyzeDocumentHybrid(blobUrl);
         } catch (aiError) {
             console.warn(`⚠️ Analyse IA échouée pour ${file.name}:`, aiError);
 
@@ -42,7 +46,7 @@ export async function processPayslipAction(
             const payslip = await prisma.payslip.create({
                 data: {
                     fileName: file.name,
-                    fileUrl: blob.url,
+                    fileUrl: blobUrl,
                     fileSize: file.size,
                     mimeType: file.type,
                     processingStatus: 'failed',
@@ -57,6 +61,7 @@ export async function processPayslipAction(
                 },
             });
 
+            successfullySaved = true;
             revalidatePath('/dashboard');
 
             return {
@@ -66,14 +71,20 @@ export async function processPayslipAction(
         }
 
         // 4. Validation des données extraites
-        const payslipData = createPayslipSchema.parse({
-            fileName: file.name,
-            fileUrl: blob.url,
-            fileSize: file.size,
-            mimeType: file.type,
-            ...extractedData,
-            extractedJson: extractedData,
-        });
+        let payslipData;
+        try {
+            payslipData = createPayslipSchema.parse({
+                fileName: file.name,
+                fileUrl: blobUrl,
+                fileSize: file.size,
+                mimeType: file.type,
+                ...extractedData,
+                extractedJson: extractedData,
+            });
+        } catch (validationErr) {
+            console.error(`❌ Validation des données extraites échouée pour ${file.name}:`, validationErr);
+            throw new Error(`Données extraites invalides : ${validationErr instanceof Error ? validationErr.message : 'Détails inconnus'}`);
+        }
 
         // 4b. Détection des doublons
         const duplicate = await prisma.payslip.findFirst({
@@ -87,12 +98,8 @@ export async function processPayslipAction(
         });
 
         if (duplicate) {
-            console.warn(`⚠️ Doublon détecté pour ${file.name}. Suppression du blob.`);
-            await del(blob.url);
-            return {
-                success: false,
-                error: "Ce bulletin a déjà été importé (Doublon détecté).",
-            };
+            console.warn(`⚠️ Doublon détecté pour ${file.name}.`);
+            throw new Error("Ce bulletin a déjà été importé (Doublon détecté).");
         }
 
         const payslip = await prisma.payslip.create({
@@ -104,7 +111,7 @@ export async function processPayslipAction(
             },
         });
 
-        // 6. Revalidation du cache Next.js
+        successfullySaved = true;
         revalidatePath('/dashboard');
 
         return {
@@ -114,6 +121,16 @@ export async function processPayslipAction(
 
     } catch (error) {
         console.error('❌ Erreur dans processPayslipAction:', error);
+
+        // Si on a un blob mais qu'on n'a pas réussi à sauvegarder en base, on nettoie
+        if (blobUrl && !successfullySaved) {
+            console.log(`🧹 Nettoyage du blob orphelin : ${blobUrl}`);
+            try {
+                await del(blobUrl);
+            } catch (delError) {
+                console.error('❌ Échec du nettoyage du blob orphelin:', delError);
+            }
+        }
 
         return {
             success: false,
