@@ -27,9 +27,12 @@ Analyse le document fourni et extrais UNIQUEMENT les informations suivantes au f
 
 CONSIGNES CRITIQUES :
 - PÉRIODE : Identifie la période de paie dans l'en-tête (ex: "Mois de Mars 2024" ou "du 01/03 au 31/03"). IGNORE les dates de signature ou d'impression en bas de page.
-- NET À PAYER : C'est le montant final viré sur le compte.
-- NET FISCAL : Cherche "Net Social Fiscal" ou "Net Imposable".
-- SIRET : Cherche un numéro de 14 chiffres, souvent près de l'adresse de l'employeur.
+- NET À PAYER : Montant final viré au salarié (souvent libellé "Net à payer", "Net payé" ou "Montant versé").
+  ATTENTION : NE PAS CONFONDRE avec le "Net Social" ou "Montant Net Social" (qui est souvent inférieur et sert aux prestations sociales).
+  REMARQUE : Le Net à Payer est généralement le montant le plus "bas" des nets, SAUF s'il y a des acomptes ou des saisies sur salaire.
+- NET SOCIAL : Montant utilisé pour le RSA/Prime d'activité (souvent libellé "Montant net social"). NE PAS l'utiliser pour le Net à Payer.
+- NET FISCAL/IMPOSABLE : Base de calcul de l'impôt (souvent libellé "Net imposable" ou "Net fiscal").
+- NET AVANT IMPÔT : Le montant avant le prélèvement à la source (souvent libellé "Net à payer avant impôt sur le revenu").
 - CESU : Si présent, il commence TOUJOURS par 'Z' suivi uniquement de chiffres (ex: Z1234567). IGNORE toute autre lettre après les chiffres.
 - RÈGLE : Réponds UNIQUEMENT avec le JSON pur. Pas de markdown, pas de texte. Si une donnée est absente, mets null.`;
 

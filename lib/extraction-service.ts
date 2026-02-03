@@ -43,9 +43,9 @@ export async function extractDataTraditional(
             employerName: /(?:Aiouaz Sami|STEPHANIE\s+VILLEMAGNE|MADAME\s+STEPHANIE\s+VILLEMAGNE|^Employeur\s*[:\s]*(?:\r?\n)?\s*(?:M\.|MME|MADAME|MONSIEUR)?\s*([A-ZÀ-Ÿa-zÀ-ÿ\s\-]{3,})|Nº Cesu employeur\s*:\s*[A-Z0-9]+\s+([A-ZÀ-Ÿ\s\-]{3,}))/im,
             siretNumber: /(?:SIRET|Nº Cesu salarié)[\s\w]*\s*(\d{14})/i,
             urssafNumber: /(?:URSSAF|Nº Cesu employeur)\s*:?\s*([A-Z0-9\s]{5,20})(?=\s|$)/i,
-            netToPay: /(?:NET A PAYER|NET SOCIAL|Net à payer|Net payé en euros|Net à payer directement|Net à payer par l'employeur)\s*[:\s\*]*([\d\s,.]+)/i,
-            netBeforeTax: /(?:NET AVANT IMPÔT|Net à payer avant impôt|Net imposable)\s*[:\s\*]*([\d\s,.]+)/i,
-            netTaxable: /(?:NET IMPOSABLE|Net imposable|Salaire net imposable)\s*[:\s\*]*([\d\s,.]+)/i,
+            netToPay: /(?:^|\s)(?:NET A PAYER|Net à payer(?: directement| par l'employeur)?|Net payé en euros|Net à verser|Montant (?:du )?virement|Total (?:net )?payé|Net à percevoir)(?!\s+avant impôt| de l'impôt)\s*[:\s\*]*([\d\s,.]+)/i,
+            netBeforeTax: /(?:NET AVANT IMPÔT|Net à payer avant impôt)\s*[:\s\*]*([\d\s,.]+)/i,
+            netTaxable: /(?:NET IMPOSABLE|Net fiscal|Salaire net imposable)\s*[:\s\*]*([\d\s,.]+)/i,
             grossSalary: /(?:SALAIRE BRUT TOTAL|Salaire Brut|Total Brut|Salaire Brut Total|MALADIE|VIEILLESSE)\s*[:\s\*]*([\d\s,.]+)(?:\s*x|\s|$)/i,
             taxAmount: /(?:MONTANT DE L'IMPÔT|Total retenues|CSG[\s\w]*=\s*|Retenu à la source|Impôt sur le revenu prélevé à la source)\s*[:\s\*]*([\d\s,.]+)/i,
             hoursWorked: /(?:Nombre d'heures(?: travaillées)?|Nb heures|Total heures|Heures)\s*[:\s\*]*([\d\s,.]+)/i,
@@ -60,8 +60,30 @@ export async function extractDataTraditional(
         // Extraire les montants numériques
         const parseAmount = (match: string | undefined): number => {
             if (!match) return 0;
-            // Nettoyer : enlever les symboles monétaires, les espaces insécables, etc.
-            const cleaned = match.replace(/[€$£\s]/g, '').replace(',', '.');
+            // Supprimer les symboles monétaires et espaces, mais garder chiffres, virgules et points
+            let cleaned = match.replace(/[€$£\s]/g, '').trim();
+
+            // Si on a à la fois , et . (ex: 1.234,56), on vire le séparateur de milliers (.)
+            if (cleaned.includes(',') && cleaned.includes('.')) {
+                // Heuristique : le dernier est le séparateur décimal
+                const lastComma = cleaned.lastIndexOf(',');
+                const lastDot = cleaned.lastIndexOf('.');
+                if (lastDot < lastComma) {
+                    cleaned = cleaned.replace(/\./g, '');
+                } else {
+                    cleaned = cleaned.replace(/,/g, '');
+                }
+            }
+
+            // On remplace la virgule par un point
+            cleaned = cleaned.replace(',', '.');
+
+            // Si on a plusieurs points (ex: 1 234.56 extrait comme 1.234.56), on ne garde que le dernier
+            const parts = cleaned.split('.');
+            if (parts.length > 2) {
+                cleaned = parts.slice(0, -1).join('') + '.' + parts[parts.length - 1];
+            }
+
             const value = parseFloat(cleaned);
             return isNaN(value) ? 0 : value;
         };
@@ -105,6 +127,22 @@ export async function extractDataTraditional(
         result.taxAmount = parseAmount(taxMatch?.[1]);
         result.hoursWorked = parseAmount(hoursMatch?.[1]);
         result.hourlyNetTaxable = parseAmount(hourlyMatch?.[1]);
+
+        // Fallback pour Net à Payer : Chercher le dernier montant significatif si non trouvé
+        if (!result.netToPay || result.netToPay === 0) {
+            // Chercher les lignes contenant des montants à la fin du document
+            const lines = text.split('\n');
+            for (let i = lines.length - 1; i >= 0; i--) {
+                const line = lines[i];
+                if (/NET|PAYER|VERSE|VIREMENT|TOTAL/i.test(line)) {
+                    const amountMatch = line.match(/([\d\s]+[,.][\d]{2})/);
+                    if (amountMatch) {
+                        result.netToPay = parseAmount(amountMatch[0]);
+                        break;
+                    }
+                }
+            }
+        }
 
         // CAS SPÉCIFIQUE : Ligne récapitulative Mensuelle (Format CESU/Particulier Employeur)
         // Format: Mensuel [Net Social] [Cumul Imposable] [Plafond SS] [Cumul Brut] [Heures] [Taux Horaire]
@@ -185,6 +223,7 @@ export async function extractDataTraditional(
                     extractionMethod: 'traditional',
                     success: true,
                     extractedData: validated,
+                    rawResponse: text, // Ajouter le texte brut pour le debug
                     processingTimeMs,
                     payslipId: context?.payslipId,
                 });
@@ -223,6 +262,7 @@ export async function extractDataTraditional(
             errorType: 'validation_error',
             errorMessage,
             extractedData: result,
+            rawResponse: text, // Ajouter le texte brut pour le debug
             processingTimeMs,
             payslipId: context?.payslipId,
         });
