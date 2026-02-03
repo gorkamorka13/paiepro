@@ -66,18 +66,33 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
     });
 
     const sortedPayslips = [...filteredPayslips].sort((a, b) => {
-        if (sortConfig.key === 'period') {
-            const dateA = (a.periodYear || 0) * 100 + (a.periodMonth || 0);
-            const dateB = (b.periodYear || 0) * 100 + (b.periodMonth || 0);
-            return sortConfig.direction === 'asc' ? dateA - dateB : dateB - dateA;
+        let comparison = 0;
+        switch (sortConfig.key) {
+            case 'period':
+                comparison = ((a.periodYear || 0) * 100 + (a.periodMonth || 0)) - ((b.periodYear || 0) * 100 + (b.periodMonth || 0));
+                break;
+            case 'client':
+                comparison = (formatName(a.employerName) || '').localeCompare(formatName(b.employerName) || '');
+                break;
+            case 'grossSalary':
+                comparison = a.grossSalary - b.grossSalary;
+                break;
+            case 'netToPay':
+                comparison = a.netToPay - b.netToPay;
+                break;
+            case 'hoursWorked':
+                comparison = a.hoursWorked - b.hoursWorked;
+                break;
+            default:
+                comparison = 0;
         }
-        return 0;
+        return sortConfig.direction === 'asc' ? comparison : -comparison;
     });
 
-    const toggleSort = () => {
+    const toggleSort = (key: string) => {
         setSortConfig(current => ({
-            key: 'period',
-            direction: current.direction === 'asc' ? 'desc' : 'asc'
+            key,
+            direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
         }));
     };
 
@@ -367,28 +382,58 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
                                 </th>
                                 <th
                                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
-                                    onClick={toggleSort}
+                                    onClick={() => toggleSort('period')}
                                 >
                                     <div className="flex items-center gap-1">
                                         Période
-                                        {sortConfig.direction === 'asc' ? (
-                                            <ArrowUp className="w-3 h-3 text-blue-500" />
-                                        ) : (
-                                            <ArrowDown className="w-3 h-3 text-blue-500" />
+                                        {sortConfig.key === 'period' && (
+                                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-500" /> : <ArrowDown className="w-3 h-3 text-blue-500" />
                                         )}
                                     </div>
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Client
+                                <th
+                                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                                    onClick={() => toggleSort('client')}
+                                >
+                                    <div className="flex items-center gap-1">
+                                        Client
+                                        {sortConfig.key === 'client' && (
+                                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-500" /> : <ArrowDown className="w-3 h-3 text-blue-500" />
+                                        )}
+                                    </div>
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-                                    Salaire Brut
+                                <th
+                                    className="px-4 py-3 text-left text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                                    onClick={() => toggleSort('grossSalary')}
+                                >
+                                    <div className="flex items-center gap-1">
+                                        Salaire Brut
+                                        {sortConfig.key === 'grossSalary' && (
+                                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-500" /> : <ArrowDown className="w-3 h-3 text-blue-500" />
+                                        )}
+                                    </div>
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Net à Payer
+                                <th
+                                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                                    onClick={() => toggleSort('netToPay')}
+                                >
+                                    <div className="flex items-center gap-1">
+                                        Net à Payer
+                                        {sortConfig.key === 'netToPay' && (
+                                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-500" /> : <ArrowDown className="w-3 h-3 text-blue-500" />
+                                        )}
+                                    </div>
                                 </th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Heures
+                                <th
+                                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                                    onClick={() => toggleSort('hoursWorked')}
+                                >
+                                    <div className="flex items-center gap-1">
+                                        Heures
+                                        {sortConfig.key === 'hoursWorked' && (
+                                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-500" /> : <ArrowDown className="w-3 h-3 text-blue-500" />
+                                        )}
+                                    </div>
                                 </th>
                                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
                                     Actions
