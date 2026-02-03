@@ -40,7 +40,7 @@ export async function extractDataTraditional(
             // Salarié : On cherche spécifiquement Michel Esparsa ou un bloc M./MME/MONSIEUR après l'employeur
             employeeName: /(?:Esparsa Michel|MONSIEUR\s+MICHEL\s+ESPARSA|MADAME\s+([A-ZÀ-Ÿ\s\-]{3,})|MONSIEUR\s+([A-ZÀ-Ÿ\s\-]{3,})|M\.\s+([A-ZÀ-Ÿa-zÀ-ÿ\s\-]{3,}))\s*(?=[\d\s]+[A-Z]|Heures|Salaire|Document|Nº Cesu)/i,
             // Employeur : Stéphanie Villemagne ou bloc après Nº Cesu employeur ou bloc après "Employeur"
-            employerName: /(?:Aiouaz Sami|STEPHANIE\s+VILLEMAGNE|MADAME\s+STEPHANIE\s+VILLEMAGNE|^Employeur\s*[:\s]*(?:\r?\n)?\s*(?:M\.|MME|MADAME|MONSIEUR)?\s*([A-ZÀ-Ÿa-zÀ-ÿ\s\-]{3,})|Nº Cesu employeur\s*:\s*[A-Z0-9]+\s+([A-ZÀ-Ÿ\s\-]{3,}))/im,
+            employerName: /(?:Aiouaz Sami|STEPHANIE\s+VILLEMAGNE|MADAME\s+STEPHANIE\s+VILLEMAGNE|^(?:Employeur|Particulier employeur|Nom de l'employeur)\s*[:\s]*(?:\r?\n)?\s*(?:M\.|MME|MADAME|MONSIEUR)?\s*(?!NATURE|CODE|TYPE|PERIODE)([A-ZÀ-Ÿ][A-ZÀ-Ÿa-zÀ-ÿ\s\-]{2,})|Nº Cesu employeur\s*:\s*[A-Z0-9]+\s+([A-ZÀ-Ÿa-zÀ-ÿ\s\-]{3,}))/im,
             siretNumber: /(?:SIRET|Nº Cesu salarié)[\s\w]*\s*(\d{14})/i,
             urssafNumber: /(?:URSSAF|Nº Cesu employeur)\s*:?\s*([A-Z0-9\s]{5,20})(?=\s|$)/i,
             netToPay: /(?:^|\s)(?:NET A PAYER|Net à payer(?: directement| par l'employeur)?|Net payé en euros|Net à verser|Montant (?:du )?virement|Total (?:net )?payé|Net à percevoir)(?!\s+avant impôt| de l'impôt)\s*[:\s\*]*([\d\s,.]+)/i,
@@ -109,7 +109,70 @@ export async function extractDataTraditional(
 
         const employerMatch = text.match(patterns.employerName);
         if (employerMatch) {
-            result.employerName = (employerMatch[1] || employerMatch[2] || employerMatch[0]).trim();
+            let extractedName = (employerMatch[1] || employerMatch[2] || employerMatch[0]).trim();
+
+            // FILTRE TOTAL : Si l'un de ces mots est présent n'importe où, on dégage
+            const blacklist = ['NATURE', 'CODE', 'TYPE', 'PERIODE', 'DATE', 'PAGE', 'DOSSIER'];
+            const upper = extractedName.toUpperCase();
+            const isInvalid = blacklist.some(kw => upper.includes(kw));
+
+            if (isInvalid) {
+                extractedName = '';
+            }
+
+            if (extractedName && extractedName.length > 2) {
+                result.employerName = extractedName;
+            }
+        }
+
+        // Fallback Employeur : Si non trouvé, on cherche dans les premières et dernières lignes du document
+        if (!result.employerName) {
+            const allLines = text.split('\n').map(l => l.trim()).filter(l => l.length > 5);
+
+            // On vérifie les 15 premières lignes ET les 15 dernières lignes
+            const linesToCheck = [
+                ...allLines.slice(0, 15),
+                ...allLines.slice(-15)
+            ];
+
+            for (const line of linesToCheck) {
+                // On cherche un format qui ressemble à un nom (M./Mme ou Majuscules/Minuscules mélangées)
+                const namePattern = /^(?:M\.|MME|MONSIEUR|MADAME|[A-ZÀ-Ÿ][a-zà-ÿ]+ [A-ZÀ-Ÿa-zà-ÿ\-]+|[A-ZÀ-Ÿ\-]{2,} [A-ZÀ-Ÿa-zà-ÿ\-]+)/i;
+
+                if (namePattern.test(line) || /^[A-ZÀ-Ÿ\s\-]{3,}$/.test(line)) {
+                    const upper = line.toUpperCase();
+
+                    // Sécurité : Ne pas prendre le nom de l'employé s'il est déjà trouvé
+                    const isEmployee = result.employeeName && (
+                        upper.includes(result.employeeName.toUpperCase()) ||
+                        result.employeeName.toUpperCase().includes(upper)
+                    );
+
+                    const blacklist = [
+                        'NATURE', 'CODE', 'TYPE', 'PERIODE', 'DATE', 'PAGE', 'DOSSIER',
+                        'BULLETIN', 'PAIE', 'SALARI', 'EMPLOYEUR', 'TITRE', 'CONVENTION',
+                        'COLLECTIVE', 'NATIONALE', 'ENTREPRISE', 'SIRET', 'URSSAF',
+                        'ACCORD', 'BRANCHE', 'ACTIVITE', 'ADRESSE', 'QUALIFICATION',
+                        'BASE', 'TAUX', 'MONTANT', 'RETENUE', 'COTISATION', 'VERSEMENT',
+                        'PART', 'PATRONAL', 'SALARIAL', 'TOTAL', 'NET', 'BRUT', 'HEURES'
+                    ];
+
+                    const isInvalid = blacklist.some(kw => upper.includes(kw));
+
+                    // On vérifie aussi si la ligne contient trop de chiffres (signe que c'est une ligne de calcul)
+                    const digitCount = (line.match(/\d/g) || []).length;
+                    const isCalculationLine = digitCount > 3;
+
+                    if (!isInvalid && !isEmployee && !isCalculationLine && line.length > 3 && line.length < 60) {
+                        // Nettoyer les suffixes comme "élève Lily"
+                        let cleanedName = line.replace(/\s+(?:élève|enfant|gardé|pour)\b.*$/i, '').trim();
+                        if (cleanedName) {
+                            result.employerName = cleanedName;
+                            break;
+                        }
+                    }
+                }
+            }
         }
 
         const netToPayMatch = text.match(patterns.netToPay);
@@ -210,7 +273,7 @@ export async function extractDataTraditional(
             try {
                 validated = aiExtractedDataSchema.parse({
                     ...result,
-                    aiModel: 'Extraction Traditionnelle ⚙️',
+                    aiModel: 'Extraction Traditionnelle (V2) ⚙️',
                     inputTokens: null,
                     outputTokens: null,
                     payslipId: context?.payslipId,

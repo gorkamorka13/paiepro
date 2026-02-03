@@ -126,6 +126,7 @@ export async function processPayslipAction(
                 employerName: payslipData.employerName,
                 periodMonth: payslipData.periodMonth,
                 periodYear: payslipData.periodYear,
+                fileName: payslipData.fileName,
                 // On pourrait ajouter netToPay ici aussi, mais employé+employeur+date devrait suffire pour l'unicité
             },
         });

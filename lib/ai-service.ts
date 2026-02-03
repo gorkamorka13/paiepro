@@ -26,6 +26,9 @@ Analyse le document fourni et extrais UNIQUEMENT les informations suivantes au f
 }
 
 CONSIGNES CRITIQUES :
+- EMPLOYEUR/SALARIÉ : Extrait uniquement le Prénom et le NOM (ex: "Jean DUPONT").
+  ATTENTION : NE PAS inclure les mentions comme "élève", "enfant", "gardé", "employeur de", "nature de".
+  Si le nom contient "élève [Nom]", garde uniquement le nom de l'adulte (l'employeur).
 - PÉRIODE : Identifie la période de paie dans l'en-tête (ex: "Mois de Mars 2024" ou "du 01/03 au 31/03"). IGNORE les dates de signature ou d'impression en bas de page.
 - NET À PAYER : Montant final viré au salarié (souvent libellé "Net à payer", "Net payé" ou "Montant versé").
   ATTENTION : NE PAS CONFONDRE avec le "Net Social" ou "Montant Net Social" (qui est souvent inférieur et sert aux prestations sociales).
