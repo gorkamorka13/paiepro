@@ -125,26 +125,29 @@ export class ExtractionLogger {
      * Statistiques d'erreurs par type
      */
     static async getErrorStats(since?: Date) {
-        const where = {
+        const errorWhere = {
             success: false,
             ...(since && { createdAt: { gte: since } }),
         };
 
-        const [total, byType, byMethod] = await Promise.all([
-            prisma.extractionLog.count({ where }),
+        const allWhere = since ? { createdAt: { gte: since } } : {};
+
+        const [totalErrors, byType, byMethod, grandTotal] = await Promise.all([
+            prisma.extractionLog.count({ where: errorWhere }),
             prisma.extractionLog.groupBy({
                 by: ['errorType'],
-                where,
+                where: errorWhere,
                 _count: true,
             }),
             prisma.extractionLog.groupBy({
                 by: ['extractionMethod'],
-                where,
+                where: errorWhere,
                 _count: true,
             }),
+            prisma.extractionLog.count({ where: allWhere }),
         ]);
 
-        return { total, byType, byMethod };
+        return { total: totalErrors, byType, byMethod, grandTotal };
     }
 
     /**

@@ -196,6 +196,8 @@ export async function getPayslipsAction(): Promise<ActionResult<Payslip[]>> {
             ],
         });
 
+        console.log(`📡 [getPayslipsAction] ${payslips.length} bulletins récupérés.`);
+
         return { success: true, data: (payslips as unknown) as Payslip[] };
     } catch (error) {
         console.error('❌ Error in getPayslipsAction:', error);

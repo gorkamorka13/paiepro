@@ -9,14 +9,14 @@ interface ClientChartProps {
 export function ClientChart({ clientData }: ClientChartProps) {
     if (clientData.length === 0) return null;
 
-    const maxValue = Math.max(...clientData.map(d => d.value));
+    const totalValue = clientData.reduce((sum, d) => sum + d.value, 0);
     const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
 
     return (
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-2 mb-6">
                 <Users className="w-5 h-5 text-blue-600" />
-                <h2 className="text-xl font-semibold">Répartition par Client (Cumul Net)</h2>
+                <h2 className="text-xl font-semibold">Répartition par Client (Part du Total)</h2>
             </div>
 
             <div className="space-y-4">
@@ -34,13 +34,13 @@ export function ClientChart({ clientData }: ClientChartProps) {
                             <div
                                 className="h-full rounded-full transition-all duration-500 flex items-center justify-end px-3"
                                 style={{
-                                    width: `${(item.value / maxValue) * 100}%`,
+                                    width: `${totalValue > 0 ? (item.value / totalValue) * 100 : 0}%`,
                                     backgroundColor: colors[index % colors.length],
-                                    minWidth: item.value > 0 ? '40px' : '0',
+                                    minWidth: item.value > 0 ? '45px' : '0',
                                 }}
                             >
-                                <span className="text-white text-xs font-bold">
-                                    {((item.value / maxValue) * 100).toFixed(0)}%
+                                <span className="text-white text-[10px] font-bold">
+                                    {totalValue > 0 ? ((item.value / totalValue) * 100).toFixed(1) : 0}%
                                 </span>
                             </div>
                         </div>

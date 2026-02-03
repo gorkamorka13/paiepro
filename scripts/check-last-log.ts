@@ -1,27 +1,21 @@
 
 import { PrismaClient } from '@prisma/client';
+import fs from 'fs';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  const lastLog = await prisma.extractionLog.findFirst({
-    where: {
-      extractionMethod: 'traditional',
-      success: false
-    },
-    orderBy: { createdAt: 'desc' },
+  const log = await prisma.extractionLog.findFirst({
+    where: { fileName: { contains: 'NAVARRO', mode: 'insensitive' } },
+    orderBy: { createdAt: 'desc' }
   });
 
-  if (!lastLog) {
-    console.log('Aucun log trouvé.');
-    return;
+  if (log && log.rawResponse) {
+    fs.writeFileSync('navarro_raw.txt', log.rawResponse.substring(0, 3000));
+    console.log('DONE: navarro_raw.txt created');
+  } else {
+    console.log('No log found');
   }
-
-  console.log('--- RAW RESPONSE START ---');
-  console.log(lastLog.rawResponse);
-  console.log('--- RAW RESPONSE END ---');
-  console.log('ID:', lastLog.id);
-  console.log('File:', lastLog.fileName);
 }
 
 main()

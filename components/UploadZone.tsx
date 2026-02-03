@@ -13,6 +13,7 @@ type FileStatus = {
     progress: number;
     error?: string;
     id?: string;
+    aiModel?: string | null;
 };
 
 export function UploadZone() {
@@ -74,6 +75,7 @@ export function UploadZone() {
                             stage: 'save',
                             progress: 100,
                             id: result.data?.id,
+                            aiModel: result.data?.aiModel,
                         };
                         return updated;
                     });
@@ -221,6 +223,15 @@ export function UploadZone() {
                                                     style={{ width: `${fileStatus.progress}%` }}
                                                 />
                                             </div>
+                                        </div>
+                                    )}
+
+                                    {fileStatus.status === 'success' && fileStatus.aiModel && (
+                                        <div className="flex items-center gap-1.5 mt-1.5">
+                                            <Zap className="w-3 h-3 text-purple-500" />
+                                            <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-2 py-0.5 rounded-full">
+                                                {fileStatus.aiModel}
+                                            </span>
                                         </div>
                                     )}
 

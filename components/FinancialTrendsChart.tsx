@@ -10,8 +10,7 @@ export function FinancialTrendsChart({ timelineData }: FinancialTrendsChartProps
     if (timelineData.length === 0) return null;
 
     const maxNet = Math.max(...timelineData.map(d => d.net));
-    const maxGross = Math.max(...timelineData.map(d => d.gross));
-    const maxValue = Math.max(maxNet, maxGross, 1);
+    const maxValue = Math.max(maxNet, 1);
 
     const formatPeriod = (period: string) => {
         const [year, month] = period.split('-');
@@ -30,10 +29,6 @@ export function FinancialTrendsChart({ timelineData }: FinancialTrendsChartProps
                     <div className="flex items-center gap-2">
                         <div className="w-3 h-3 bg-blue-500 rounded-sm"></div>
                         <span className="text-gray-500">Net</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 bg-indigo-200 dark:bg-indigo-900 rounded-sm"></div>
-                        <span className="text-gray-500">Brut</span>
                     </div>
                 </div>
             </div>
@@ -56,7 +51,6 @@ export function FinancialTrendsChart({ timelineData }: FinancialTrendsChartProps
                     <div className="w-full h-full flex items-end justify-around gap-2 px-4 md:px-8 relative z-0">
                         {timelineData.map((item, index) => {
                             const netHeight = (item.net / maxValue) * 100;
-                            const grossHeight = (item.gross / maxValue) * 100;
 
                             return (
                                 <div key={index} className="flex-1 max-w-[100px] flex flex-col items-center group relative h-full justify-end">
@@ -68,19 +62,11 @@ export function FinancialTrendsChart({ timelineData }: FinancialTrendsChartProps
                                                 <span className="font-bold">NET:</span>
                                                 <span className="font-mono">{item.net.toFixed(2)}€</span>
                                             </p>
-                                            <p className="flex justify-between gap-6 opacity-70">
-                                                <span className="font-bold">BRUT:</span>
-                                                <span className="font-mono">{item.gross.toFixed(2)}€</span>
-                                            </p>
                                         </div>
                                     </div>
 
-                                    <div className="w-full flex items-end justify-center gap-1.5 h-full relative group-hover:scale-x-105 transition-transform duration-500">
-                                        {/* Gross Bar */}
-                                        <div
-                                            className="w-3 md:w-4 bg-gradient-to-t from-indigo-500/10 to-indigo-500/30 dark:from-indigo-400/5 dark:to-indigo-400/20 rounded-t-lg transition-all duration-700 ease-out group-hover:from-indigo-500/20 group-hover:to-indigo-500/40 border border-indigo-200/20 dark:border-indigo-800/20"
-                                            style={{ height: `${grossHeight}%` }}
-                                        ></div>
+                                    <div className="w-full flex items-end justify-center h-full relative group-hover:scale-x-105 transition-transform duration-500">
+
                                         {/* Net Bar */}
                                         <div
                                             className="w-4 md:w-5 bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-lg transition-all duration-1000 ease-out shadow-[0_0_20px_rgba(37,99,235,0.2)] group-hover:shadow-[0_0_25px_rgba(37,99,235,0.4)] group-hover:from-blue-500 group-hover:to-blue-300 origin-bottom"

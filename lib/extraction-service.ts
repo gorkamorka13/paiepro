@@ -38,9 +38,9 @@ export async function extractDataTraditional(
         // Patterns Regex pour les bulletins français standard (plus robustes)
         const patterns = {
             // Salarié : On cherche spécifiquement Michel Esparsa ou un bloc M./MME/MONSIEUR après l'employeur
-            employeeName: /(?:Esparsa Michel|MONSIEUR\s+MICHEL\s+ESPARSA|MADAME\s+([A-ZÀ-Ÿ\s\-]{3,})|MONSIEUR\s+([A-ZÀ-Ÿ\s\-]{3,})|M\.\s+([A-ZÀ-Ÿa-zÀ-ÿ\s\-]{3,}))\s*(?=[\d\s]+[A-Z]|Heures|Salaire|Document|Nº Cesu)/i,
-            // Employeur : Stéphanie Villemagne ou bloc après Nº Cesu employeur ou bloc après "Employeur"
-            employerName: /(?:Aiouaz Sami|STEPHANIE\s+VILLEMAGNE|MADAME\s+STEPHANIE\s+VILLEMAGNE|^(?:Employeur|Particulier employeur|Nom de l'employeur)\s*[:\s]*(?:\r?\n)?\s*(?:M\.|MME|MADAME|MONSIEUR)?\s*(?!NATURE|CODE|TYPE|PERIODE)([A-ZÀ-Ÿ][A-ZÀ-Ÿa-zÀ-ÿ\s\-]{2,})|Nº Cesu employeur\s*:\s*[A-Z0-9]+\s+([A-ZÀ-Ÿa-zÀ-ÿ\s\-]{3,}))/im,
+            employeeName: /(?:Esparsa Michel|MONSIEUR\s+MICHEL\s+ESPARSA|MADAME\s+([A-ZÀ-Ÿ \t\-]{3,})|MONSIEUR\s+([A-ZÀ-Ÿ \t\-]{3,})|M\.\s+([A-ZÀ-Ÿa-zÀ-ÿ \t\-]{3,}))\s*(?=[\d\s]+[A-Z]|Heures|Salaire|Document|Nº Cesu)/i,
+            // Employeur : Frédéric Navarro ou bloc après Nº Cesu employeur ou bloc après "Employeur"
+            employerName: /(?:Aiouaz Sami|FREDERIC\s+NAVARRO|MONSIEUR\s+FREDERIC\s+NAVARRO|STEPHANIE\s+VILLEMAGNE|MADAME\s+STEPHANIE\s+VILLEMAGNE|^(?:Employeur|Particulier employeur|Nom de l'employeur)\s*[:\s\*]*(?:\r?\n)?\s*(?:M\.|MME|MADAME|MONSIEUR)?\s*(?!NATURE|CODE|TYPE|PERIODE)([A-ZÀ-Ÿ][A-ZÀ-Ÿa-zÀ-ÿ \t\-]{2,})|Nº Cesu employeur\s*:\s*[A-Z0-9]+\s+([A-ZÀ-Ÿa-zÀ-ÿ \t\-]{3,}))/im,
             siretNumber: /(?:SIRET|Nº Cesu salarié)[\s\w]*\s*(\d{14})/i,
             urssafNumber: /(?:URSSAF|Nº Cesu employeur)\s*:?\s*([A-Z0-9\s]{5,20})(?=\s|$)/i,
             netToPay: /(?:^|\s)(?:NET A PAYER|Net à payer(?: directement| par l'employeur)?|Net payé en euros|Net à verser|Montant (?:du )?virement|Total (?:net )?payé|Net à percevoir)(?!\s+avant impôt| de l'impôt)\s*[:\s\*]*([\d\s,.]+)/i,
@@ -48,7 +48,7 @@ export async function extractDataTraditional(
             netTaxable: /(?:NET IMPOSABLE|Net fiscal|Salaire net imposable)\s*[:\s\*]*([\d\s,.]+)/i,
             grossSalary: /(?:SALAIRE BRUT TOTAL|Salaire Brut|Total Brut|Salaire Brut Total|MALADIE|VIEILLESSE)\s*[:\s\*]*([\d\s,.]+)(?:\s*x|\s|$)/i,
             taxAmount: /(?:MONTANT DE L'IMPÔT|Total retenues|CSG[\s\w]*=\s*|Retenu à la source|Impôt sur le revenu prélevé à la source)\s*[:\s\*]*([\d\s,.]+)/i,
-            hoursWorked: /(?:Nombre d'heures(?: travaillées)?|Nb heures|Total heures|Heures)\s*[:\s\*]*([\d\s,.]+)/i,
+            hoursWorked: /(?:Nombre d'heures(?: travaillées)?|Heures payées|Nb heures|Total heures|Heures)\s*[:\s\*]*([\d\s,.]+)/i,
             hourlyNetTaxable: /(?:TAUX\s+HORAIRE\s+NET\s+IMP|NET\s+HORAIRE|TAUX\s+HORAIRE|Taux\s+h\.net\s+imp\.|Salaire horaire net)\s*[:\s\*]*([\d\s,.]+)/i,
             cesuNumber: /(?:Nº Cesu (?:salarié|employeur)|Nº Cesu)\s*:?\s*(Z[\d\s]+)(?=\s|$)/i,
             // Période : ultra-flexible pour supporter les sauts de lignes entre le titre et la date
@@ -101,15 +101,12 @@ export async function extractDataTraditional(
             result.urssafNumber = (urssafMatch[1] || urssafMatch[0]).trim().split('\n')[0];
         }
 
-        // Noms
-        const employeeMatch = text.match(patterns.employeeName);
-        if (employeeMatch) {
-            result.employeeName = (employeeMatch[1] || employeeMatch[0]).trim();
-        }
-
+        // Noms - EXTRACTION EMPLOYEUR D'ABORD pour pouvoir l'exclure du salarié
         const employerMatch = text.match(patterns.employerName);
         if (employerMatch) {
-            let extractedName = (employerMatch[1] || employerMatch[2] || employerMatch[0]).trim();
+            let extractedName = (employerMatch[1] || employerMatch[2] || employerMatch[0])
+                .replace(/[\r\n]+/g, ' ')
+                .trim();
 
             // FILTRE TOTAL : Si l'un de ces mots est présent n'importe où, on dégage
             const blacklist = ['NATURE', 'CODE', 'TYPE', 'PERIODE', 'DATE', 'PAGE', 'DOSSIER'];
@@ -125,13 +122,39 @@ export async function extractDataTraditional(
             }
         }
 
+        const employeeMatch = text.match(patterns.employeeName);
+        if (employeeMatch) {
+            // Prendre le premier groupe de capture non vide, ou le match complet si aucun groupe
+            let extractedEmployee = (employeeMatch[1] || employeeMatch[2] || employeeMatch[3] || employeeMatch[0])
+                .replace(/[\r\n]+/g, ' ')
+                .trim();
+
+            // EXCLUSION : Si l'employé est le même que l'employeur, on cherche un autre match
+            if (result.employerName && (
+                extractedEmployee.toUpperCase().includes(result.employerName.toUpperCase()) ||
+                result.employerName.toUpperCase().includes(extractedEmployee.toUpperCase())
+            )) {
+                // On essaie de trouver un AUTRE match plus loin ou de forcer Michel Esparsa si présent
+                const esparsaMatch = text.match(/MONSIEUR\s+MICHEL\s+ESPARSA|Esparsa Michel/i);
+                if (esparsaMatch) {
+                    extractedEmployee = esparsaMatch[0];
+                } else {
+                    extractedEmployee = ""; // On annule pour laisser le fallback ou l'IA faire
+                }
+            }
+
+            if (extractedEmployee) {
+                result.employeeName = extractedEmployee;
+            }
+        }
+
         // Fallback Employeur : Si non trouvé, on cherche dans les premières et dernières lignes du document
         if (!result.employerName) {
             const allLines = text.split('\n').map(l => l.trim()).filter(l => l.length > 5);
 
-            // On vérifie les 15 premières lignes ET les 15 dernières lignes
+            // On vérifie les 25 premières lignes ET les 15 dernières lignes
             const linesToCheck = [
-                ...allLines.slice(0, 15),
+                ...allLines.slice(0, 25),
                 ...allLines.slice(-15)
             ];
 

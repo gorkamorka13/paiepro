@@ -44,7 +44,7 @@ interface Log {
 export default function ExtractionLogsPage() {
     const [logs, setLogs] = useState<Log[]>([]);
     const [total, setTotal] = useState(0);
-    const [stats, setStats] = useState<{ total: number; byMethod: Array<{ extractionMethod: string; _count: number }> } | null>(null);
+    const [stats, setStats] = useState<{ total: number; byMethod: Array<{ extractionMethod: string; _count: number }>; grandTotal: number } | null>(null);
     const [loading, setLoading] = useState(true);
     const [selectedLog, setSelectedLog] = useState<Log & {
         rawResponse?: string;
@@ -165,7 +165,17 @@ export default function ExtractionLogsPage() {
 
             {/* Stats Cards */}
             {stats && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm flex items-center gap-4">
+                        <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center">
+                            <FileSearch className="w-6 h-6 text-blue-600" />
+                        </div>
+                        <div>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Total Analyses</p>
+                            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.grandTotal || 0}</p>
+                        </div>
+                    </div>
+
                     <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm flex items-center gap-4">
                         <div className="w-12 h-12 bg-red-50 dark:bg-red-900/20 rounded-2xl flex items-center justify-center">
                             <AlertTriangle className="w-6 h-6 text-red-600" />
@@ -177,8 +187,8 @@ export default function ExtractionLogsPage() {
                     </div>
 
                     <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm flex items-center gap-4">
-                        <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center">
-                            <Brain className="w-6 h-6 text-blue-600" />
+                        <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl flex items-center justify-center">
+                            <Brain className="w-6 h-6 text-indigo-600" />
                         </div>
                         <div>
                             <p className="text-sm text-gray-500 dark:text-gray-400">Par IA</p>

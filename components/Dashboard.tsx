@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getPayslipsAction, deletePayslipAction, deleteMultiplePayslipsAction, updatePayslipAction, reanalyzePayslipAction } from '@/app/actions/payslip';
 import { Trash2, ExternalLink, Users, Edit2, X, Save, FileSpreadsheet, FileText, ArrowUp, ArrowDown, Search, Sparkles } from 'lucide-react';
@@ -21,6 +21,14 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
         fallbackData: initialPayslips,
         revalidateOnMount: true,
     });
+
+    // Synchroniser le cache SWR avec les données initiales du serveur
+    useEffect(() => {
+        if (initialPayslips.length > 0) {
+            revalidate(initialPayslips, false);
+        }
+    }, [initialPayslips, revalidate]);
+
     const [editingPayslip, setEditingPayslip] = useState<Payslip | null>(null);
     const [sortConfig, setSortConfig] = useState({ key: 'period', direction: 'desc' as 'asc' | 'desc' });
     const [selectedPayslips, setSelectedPayslips] = useState<Set<string>>(new Set());
@@ -62,7 +70,14 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
 
         const matchesMonth = selectedMonth === 'all' || p.periodMonth === Number(selectedMonth);
 
-        return matchesSearch && matchesYear && matchesMonth;
+        const ok = matchesSearch && matchesYear && matchesMonth;
+
+        // Debug pour le mois de Mai (si on ne voit rien)
+        if (!ok && (p.periodMonth === 5 || (p.fileName || '').toLowerCase().includes('mai'))) {
+            // console.log(`🔍 [DEBUG FILTER] Refusé: ${p.fileName} | Mois: ${p.periodMonth} (Mois select: ${selectedMonth}) | Année: ${p.periodYear} (Année select: ${selectedYear})`);
+        }
+
+        return ok;
     });
 
     const sortedPayslips = [...filteredPayslips].sort((a, b) => {
@@ -331,18 +346,13 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
             </div>
 
             {/* Statistiques */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 md:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
                     <p className="text-sm text-gray-500 mb-1">Total Bulletins</p>
                     <p className="text-3xl font-bold">{statsData.length}</p>
                 </div>
 
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700 font-medium">
-                    <p className="text-sm text-blue-600 dark:text-blue-400 mb-1">Total Brut (Arrondis)</p>
-                    <p className="text-2xl md:text-3xl font-bold">
-                        {statsData.reduce((sum, p) => sum + Math.trunc(p.grossSalary), 0).toFixed(2)} €
-                    </p>
-                </div>
+
 
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
                     <p className="text-sm text-gray-500 mb-1">Total Net à Payer</p>
@@ -402,13 +412,14 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
                                         )}
                                     </div>
                                 </th>
+
                                 <th
-                                    className="px-4 py-3 text-left text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
-                                    onClick={() => toggleSort('grossSalary')}
+                                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                                    onClick={() => toggleSort('netTaxable')}
                                 >
                                     <div className="flex items-center gap-1">
-                                        Salaire Brut
-                                        {sortConfig.key === 'grossSalary' && (
+                                        Net Imposable
+                                        {sortConfig.key === 'netTaxable' && (
                                             sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-500" /> : <ArrowDown className="w-3 h-3 text-blue-500" />
                                         )}
                                     </div>
@@ -502,11 +513,8 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
                                             )}
                                         </td>
                                         <td className="px-4 py-4 whitespace-nowrap">
-                                            <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                                                {payslip.grossSalary > 0 ? `${payslip.grossSalary.toFixed(2)} € (Brut)` : '—'}
-                                            </div>
-                                            <div className="text-xs text-gray-500">
-                                                {payslip.netTaxable > 0 ? `${payslip.netTaxable.toFixed(2)} € (Impos.)` : ''}
+                                            <div className="text-sm text-gray-500">
+                                                {payslip.netTaxable > 0 ? `${payslip.netTaxable.toFixed(2)} € (Impos.)` : '—'}
                                             </div>
                                         </td>
                                         <td className="px-4 py-4 whitespace-nowrap">
