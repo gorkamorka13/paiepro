@@ -2,14 +2,23 @@
 // const pdf = require('pdf-parse'); // Moved inside function
 import { aiExtractedDataSchema, type AIExtractedData } from './validations';
 import { analyzeDocument } from './ai-service';
+import { ExtractionLogger } from './extraction-logger';
 
 /**
  * Tente d'extraire les données d'un bulletin de paie sans utiliser l'IA.
  * Utilise pdf-parse pour extraire le texte brut et des Regex pour trouver les valeurs.
  */
-export async function extractDataTraditional(fileUrl: string): Promise<AIExtractedData | null> {
+export async function extractDataTraditional(
+    fileUrl: string,
+    fileMetadata: { fileName: string; fileSize: number; mimeType: string }
+): Promise<AIExtractedData | null> {
+    const startTime = Date.now();
+
     try {
-        const pdf = require('pdf-parse'); // Dynamic require to avoid server-side build issues with canvas
+        let pdf = require('pdf-parse');
+        // Handle potential ESM default export
+        if (pdf.default) pdf = pdf.default;
+
         const response = await fetch(fileUrl);
         if (!response.ok) throw new Error('Échec du téléchargement');
 
@@ -44,8 +53,6 @@ export async function extractDataTraditional(fileUrl: string): Promise<AIExtract
         };
 
         // Extraction par Regex
-        // const textClean = text.replace(/\s+/g, ' '); // Normaliser les espaces pour faciliter la recherche
-
         // SIRET (14 chiffres)
         const siretMatch = text.match(/(?:SIRET|N°\s+SIRET)\s*[:\s]*(\d{14})/i) || text.match(/(\d{3}\s*\d{3}\s*\d{3}\s*\d{5})/);
         if (siretMatch) {
@@ -88,24 +95,77 @@ export async function extractDataTraditional(fileUrl: string): Promise<AIExtract
             }
         }
 
+        const processingTimeMs = Date.now() - startTime;
+
         // Si on a les champs critiques, on valide
         if (result.netToPay && result.grossSalary) {
+            let validated: AIExtractedData;
             try {
-                return aiExtractedDataSchema.parse({
+                validated = aiExtractedDataSchema.parse({
                     ...result,
                     aiModel: 'Extraction Traditionnelle ⚙️',
                     inputTokens: null,
                     outputTokens: null,
                 }) as AIExtractedData;
+
+                // Logger le succès
+                await ExtractionLogger.log({
+                    ...fileMetadata,
+                    fileUrl,
+                    extractionMethod: 'traditional',
+                    success: true,
+                    extractedData: validated,
+                    processingTimeMs,
+                });
+
+                return validated;
             } catch (err) {
                 console.warn('⚠️ Validation Zod échouée pour extraction traditionnelle', err);
+
+                // Logger l'erreur de validation
+                await ExtractionLogger.log({
+                    ...fileMetadata,
+                    fileUrl,
+                    extractionMethod: 'traditional',
+                    success: false,
+                    error: err as Error,
+                    errorType: 'validation_error',
+                    extractedData: result,
+                    validationErrors: (err as any).errors,
+                    processingTimeMs,
+                });
+
                 return null;
             }
         }
 
-        return null; // Pas assez de données fiables
+        // Pas assez de données fiables
+        await ExtractionLogger.log({
+            ...fileMetadata,
+            fileUrl,
+            extractionMethod: 'traditional',
+            success: false,
+            errorType: 'validation_error',
+            errorMessage: 'Données insuffisantes extraites par méthode traditionnelle',
+            extractedData: result,
+            processingTimeMs,
+        });
+
+        return null;
     } catch (error) {
         console.error('❌ Erreur lors de l\'extraction traditionnelle :', error);
+        const processingTimeMs = Date.now() - startTime;
+
+        await ExtractionLogger.log({
+            ...fileMetadata,
+            fileUrl,
+            extractionMethod: 'traditional',
+            success: false,
+            error: error as Error,
+            errorType: ExtractionLogger.categorizeError(error as Error),
+            processingTimeMs,
+        });
+
         return null;
     }
 }
@@ -113,12 +173,15 @@ export async function extractDataTraditional(fileUrl: string): Promise<AIExtract
 /**
  * Service hybride : Tente le traditionnel, sinon passe à l'IA
  */
-export async function analyzeDocumentHybrid(fileUrl: string): Promise<AIExtractedData & { aiModel: string; inputTokens?: number; outputTokens?: number }> {
-    const traditionalResult = await extractDataTraditional(fileUrl);
+export async function analyzeDocumentHybrid(
+    fileUrl: string,
+    fileMetadata: { fileName: string; fileSize: number; mimeType: string }
+): Promise<AIExtractedData & { aiModel: string; inputTokens?: number; outputTokens?: number }> {
+    const traditionalResult = await extractDataTraditional(fileUrl, fileMetadata);
 
     if (traditionalResult) {
         return traditionalResult as AIExtractedData & { aiModel: string };
     }
 
-    return await analyzeDocument(fileUrl);
+    return await analyzeDocument(fileUrl, fileMetadata);
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/auth-client";
 import { LoginDialog } from "./login-dialog";
 import { Loader2 } from "lucide-react";
 

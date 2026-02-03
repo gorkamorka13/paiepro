@@ -35,10 +35,52 @@ model Payslip {
   updatedAt        DateTime @updatedAt
   inputTokens      Int?
   outputTokens     Int?
+  
+  extractionLogs   ExtractionLog[]
 
   @@index([periodYear, periodMonth])
   @@index([createdAt])
   @@index([processingStatus])
+}
+
+model ExtractionLog {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  
+  // Contexte du document
+  fileUrl       String
+  fileName      String
+  fileSize      Int
+  mimeType      String
+  
+  // Type d'extraction tentée
+  extractionMethod String  // "traditional" | "ai" | "hybrid"
+  aiModel          String? // "gemini-2.5-flash" | null
+  
+  // Résultat
+  success       Boolean
+  errorType     String?  // "api_error" | "validation_error" | "parsing_error" | "network_error"
+  errorMessage  String?  @db.Text
+  errorStack    String?  @db.Text
+  
+  // Données brutes pour debug
+  rawResponse      String?  @db.Text  // Réponse brute de l'API
+  extractedData    Json?              // Données extraites avant validation
+  validationErrors Json?              // Erreurs de validation Zod
+  
+  // Métriques
+  processingTimeMs Int?
+  inputTokens      Int?
+  outputTokens     Int?
+  
+  // Relation optionnelle avec Payslip
+  payslipId     String?
+  payslip       Payslip? @relation(fields: [payslipId], references: [id], onDelete: SetNull)
+  
+  @@index([createdAt])
+  @@index([success])
+  @@index([errorType])
+  @@index([extractionMethod])
 }
 
 model User {

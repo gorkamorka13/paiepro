@@ -2,10 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { Home, BarChart3, Settings, Sun, Moon, Menu, X, LogOut } from 'lucide-react';
+import { Home, BarChart3, Settings, Sun, Moon, Menu, X, LogOut, AlertCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
-import { signOut } from 'next-auth/react';
+import { signOut } from '@/lib/auth-client';
 import packageInfo from '../package.json';
 import Image from 'next/image';
 import { UsageIndicator } from './UsageIndicator';
@@ -26,6 +26,7 @@ export function Sidebar() {
     const menuItems = [
         { icon: Home, label: 'Accueil', href: '/' },
         { icon: BarChart3, label: 'Dashboard', href: '/dashboard' },
+        { icon: AlertCircle, label: 'Logs IA', href: '/admin/extraction-logs' },
     ];
 
     const toggleTheme = () => {

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { X, Save, Lock, User, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { updateUserAction } from '@/app/actions/user';
-import { useSession } from 'next-auth/react';
+import { useSession } from '@/lib/auth-client';
 
 interface SettingsModalProps {
     onClose: () => void;
@@ -108,11 +108,10 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                                             type={showConfirmPassword ? "text" : "password"}
                                             value={confirmPassword}
                                             onChange={(e) => setConfirmPassword(e.target.value)}
-                                            className={`w-full px-4 py-2 rounded-lg border bg-white dark:bg-gray-900 focus:ring-2 outline-none transition-all pr-10 ${
-                                                confirmPassword && password !== confirmPassword
+                                            className={`w-full px-4 py-2 rounded-lg border bg-white dark:bg-gray-900 focus:ring-2 outline-none transition-all pr-10 ${confirmPassword && password !== confirmPassword
                                                     ? 'border-red-500 focus:ring-red-500'
                                                     : 'border-gray-200 dark:border-gray-700 focus:ring-blue-500'
-                                            }`}
+                                                }`}
                                             placeholder="Répétez le mot de passe"
                                         />
                                         <button

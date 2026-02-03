@@ -51,7 +51,12 @@ export async function processPayslipAction(
         let extractedData;
         try {
             // Utilise l'analyse intelligente (hybride : Classique -> IA si besoin)
-            extractedData = await analyzeDocumentHybrid(blobUrl);
+            const fileMetadata = {
+                fileName: file.name,
+                fileSize: file.size,
+                mimeType: file.type,
+            };
+            extractedData = await analyzeDocumentHybrid(blobUrl, fileMetadata);
         } catch (aiError) {
             console.warn(`⚠️ Analyse IA échouée pour ${file.name}:`, aiError);
 
@@ -79,7 +84,7 @@ export async function processPayslipAction(
 
             return {
                 success: true,
-                data: payslip as Payslip,
+                data: (payslip as unknown) as Payslip,
             };
         }
 
@@ -141,7 +146,7 @@ export async function processPayslipAction(
 
         return {
             success: true,
-            data: payslip as Payslip,
+            data: (payslip as unknown) as Payslip,
         };
 
     } catch (error) {
@@ -175,7 +180,7 @@ export async function getPayslipsAction(): Promise<ActionResult<Payslip[]>> {
             ],
         });
 
-        return { success: true, data: payslips as Payslip[] };
+        return { success: true, data: (payslips as unknown) as Payslip[] };
     } catch (error) {
         console.error('❌ Error in getPayslipsAction:', error);
         console.error('❌ Error name:', error instanceof Error ? error.name : 'Unknown');
@@ -258,21 +263,35 @@ export async function updatePayslipAction(
 // Action pour récupérer les statistiques d'utilisation
 export async function getUsageStatsAction() {
     try {
-        const stats = await prisma.payslip.aggregate({
-            _sum: {
-                fileSize: true,
-                inputTokens: true,
-                outputTokens: true,
-            },
-            _count: {
-                id: true,
-            }
-        });
+        const [payslipStats, logStats] = await Promise.all([
+            prisma.payslip.aggregate({
+                _sum: {
+                    fileSize: true,
+                    inputTokens: true,
+                    outputTokens: true,
+                },
+                _count: {
+                    id: true,
+                }
+            }),
+            prisma.extractionLog.aggregate({
+                _sum: {
+                    inputTokens: true,
+                    outputTokens: true,
+                }
+            })
+        ]);
 
-        const totalStorageBytes = stats._sum?.fileSize || 0;
-        const totalTokens = (stats._sum?.inputTokens || 0) + (stats._sum?.outputTokens || 0);
+        const totalStorageBytes = payslipStats._sum?.fileSize || 0;
+
+        // Les logs d'extraction sont la source de vérité pour le coût total IA
+        // car ils incluent les succès ET les échecs (contrairement à la table Payslip)
+        const totalTokens =
+            (logStats._sum?.inputTokens || 0) +
+            (logStats._sum?.outputTokens || 0);
+
         const limitBytes = 250 * 1024 * 1024; // 250MB
-        const fileCount = stats._count?.id || 0;
+        const fileCount = payslipStats._count?.id || 0;
 
         return {
             success: true,

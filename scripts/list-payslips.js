@@ -28,7 +28,15 @@ async function main() {
   const { blobs } = await list({
     token: process.env.BLOB_READ_WRITE_TOKEN
   });
-  console.log(JSON.stringify(blobs.map(b => ({ url: b.url, pathname: b.pathname })), null, 2));
+  const result = {
+    payslips,
+    blobs: blobs.map(b => ({ url: b.url, pathname: b.pathname, size: b.size }))
+  };
+
+  const fs = require('fs');
+  const path = require('path');
+  fs.writeFileSync(path.join(__dirname, '../payslips_data.json'), JSON.stringify(result, null, 2));
+  console.log('Done writing to payslips_data.json');
 }
 
 main().catch(console.error).finally(() => prisma.$disconnect());

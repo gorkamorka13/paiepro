@@ -1,0 +1,8 @@
+🔍 Détails de la vérification de synchronisation...
+📊 Payslips en base : 15
+📝 Logs d'extraction : 2
+📦 Blobs sur Vercel : 15
+
+🔍 INFO : 2 Logs d'échecs ont encore un fichier Blob (Normal si non nettoyé en cas d'erreur critique) :
+  - Log cml68sgd00000voggtgjysj8n : PLEE Claire_Decembre2025.pdf
+  - Log cml68sh700001voggtb3irwf1 : PLEE Claire_Decembre2025.pdf
