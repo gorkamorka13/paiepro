@@ -165,7 +165,7 @@ export async function extractDataTraditional(
 
                     if (!isInvalid && !isEmployee && !isCalculationLine && line.length > 3 && line.length < 60) {
                         // Nettoyer les suffixes comme "élève Lily"
-                        let cleanedName = line.replace(/\s+(?:élève|enfant|gardé|pour)\b.*$/i, '').trim();
+                        const cleanedName = line.replace(/\s+(?:élève|enfant|gardé|pour)\b.*$/i, '').trim();
                         if (cleanedName) {
                             result.employerName = cleanedName;
                             break;
