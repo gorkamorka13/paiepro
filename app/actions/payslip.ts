@@ -102,7 +102,8 @@ export async function processPayslipAction(
                 cesuNumber: cleanCesuNumber(extractedData.cesuNumber),
             };
 
-            payslipData = createPayslipSchema.parse({
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { isCesu, ...dataWithoutIsCesu } = createPayslipSchema.parse({
                 fileName: file.name,
                 fileUrl: blobUrl,
                 fileSize: file.size,
@@ -110,6 +111,7 @@ export async function processPayslipAction(
                 ...cleanedData,
                 extractedJson: extractedData,
             });
+            payslipData = dataWithoutIsCesu;
         } catch (validationErr) {
             console.error(`❌ Validation des données extraites échouée pour ${file.name}:`, validationErr);
             throw new Error(`Données extraites invalides : ${validationErr instanceof Error ? validationErr.message : 'Détails inconnus'}`);
