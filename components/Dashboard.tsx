@@ -360,23 +360,23 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
                 </div>
 
                 <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <p className="text-xs text-gray-500 mb-1">Total Brut</p>
+                    <p className="text-xs text-blue-500 font-semibold mb-1">Total Net Avant Impôts</p>
+                    <p className="text-xl md:text-2xl font-bold">
+                        {statsData.reduce((sum, p) => sum + p.netBeforeTax, 0).toFixed(2)} €
+                    </p>
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <p className="text-xs text-blue-500 font-semibold mb-1">Total Brut</p>
                     <p className="text-xl md:text-2xl font-bold">
                         {statsData.reduce((sum, p) => sum + Math.floor(p.grossSalary), 0)} €
                     </p>
                 </div>
 
                 <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <p className="text-xs text-gray-500 mb-1">Total Net à Payer</p>
+                    <p className="text-xs text-blue-500 font-semibold mb-1">Total Net à Payer</p>
                     <p className="text-xl md:text-2xl font-bold">
                         {statsData.reduce((sum, p) => sum + p.netToPay, 0).toFixed(2)} €
-                    </p>
-                </div>
-
-                <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <p className="text-xs text-gray-500 mb-1">Total Net Avant Impôts</p>
-                    <p className="text-xl md:text-2xl font-bold">
-                        {statsData.reduce((sum, p) => sum + p.netBeforeTax, 0).toFixed(2)} €
                     </p>
                 </div>
             </div>

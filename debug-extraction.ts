@@ -1,46 +1,36 @@
 
-import { prisma } from './lib/prisma';
+import { extractDataTraditional } from './lib/extraction-service';
+import { extractText } from 'unpdf';
 
 async function main() {
-  console.log('Fetching recent extraction logs...');
-  const logs = await prisma.extractionLog.findMany({
-    take: 5,
-    orderBy: { createdAt: 'desc' },
-    select: {
-      fileName: true,
-      rawResponse: true,
-      createdAt: true,
-      extractedData: true
-    }
-  });
+  // URL d'un fichier problématique (BAQUEY Octobre 2025 detected -> Should be 2024?)
+  const fileUrl = 'https://4hhi6cqygz8wscwc.public.blob.vercel-storage.com/BAQUEY%20St%C3%A9phanie%20%28Anna%29_octobre2025-k97EgdBf9oKA5dVbDMk4exV7zotGT3.pdf';
 
-  console.log(`Found ${logs.length} logs.`);
+  console.log(`Analyzing: ${fileUrl}`);
 
-  for (const log of logs) {
-    console.log('---------------------------------------------------');
-    console.log(`File: ${log.fileName} (Created: ${log.createdAt})`);
-    console.log('Extracted Data:', JSON.stringify(log.extractedData, null, 2));
-    console.log('Raw Text Preview (first 500 chars):');
-    console.log(log.rawResponse?.substring(0, 500));
-    console.log('\n--- RAW TEXT SEARCH FOR NET IMPOSABLE ---');
-    if (log.rawResponse) {
-      const lines = log.rawResponse.split('\n');
-      // Print lines that might contain "Net" or "Imposable"
-      lines.forEach((line, index) => {
-        if (/net|imposable|social|payer|avant impôt/i.test(line)) {
-          console.log(`Line ${index + 1}: ${line.trim()}`);
-        }
-      });
-    }
-    console.log('---------------------------------------------------');
-  }
+  const fileMetadata = {
+    fileName: 'BAQUEY Stéphanie (Anna)_octobre2025.pdf',
+    fileSize: 0,
+    mimeType: 'application/pdf'
+  };
+
+  const result = await extractDataTraditional(fileUrl, fileMetadata);
+  console.log('--- Extraction Result ---');
+  console.log(JSON.stringify(result, null, 2));
+
+  // Also fetch text manually to debug
+  const response = await fetch(fileUrl);
+  const buffer = await response.arrayBuffer();
+  const textData = await extractText(buffer);
+  const text = typeof textData === 'string' ? textData : (textData.text as string[]).join('\n');
+
+  console.log('\n--- RAW TEXT START ---');
+  console.log(text.substring(0, 1000));
+  console.log('--- RAW TEXT END ---');
 }
 
 main()
   .catch((e) => {
     console.error(e);
     process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
   });
