@@ -82,6 +82,8 @@ export async function processPayslipAction(
 
             successfullySaved = true;
             revalidatePath('/dashboard');
+            revalidatePath('/admin/extraction-logs');
+            revalidatePath('/');
 
             return {
                 success: true,
@@ -144,6 +146,8 @@ export async function processPayslipAction(
 
         successfullySaved = true;
         revalidatePath('/dashboard');
+        revalidatePath('/admin/extraction-logs');
+        revalidatePath('/');
 
         return {
             success: true,
@@ -423,6 +427,7 @@ export async function reanalyzePayslipAction(
 
         revalidatePath('/dashboard');
         revalidatePath('/admin/extraction-logs');
+        revalidatePath('/');
 
         return {
             success: true,

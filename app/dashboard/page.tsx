@@ -3,6 +3,8 @@ import { ArrowLeft } from 'lucide-react';
 import DashboardClient from '@/components/DashboardClient';
 import { getPayslipsAction } from '@/app/actions/payslip';
 
+export const dynamic = 'force-dynamic';
+
 export default async function DashboardPage() {
     // Pre-fetch data on the server
     const result = await getPayslipsAction();
