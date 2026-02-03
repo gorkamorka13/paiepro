@@ -346,32 +346,37 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
             </div>
 
             {/* Statistiques */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <p className="text-sm text-gray-500 mb-1">Total Bulletins</p>
-                    <p className="text-3xl font-bold">{statsData.length}</p>
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <p className="text-xs text-gray-500 mb-1">Total Bulletins</p>
+                    <p className="text-xl md:text-2xl font-bold">{statsData.length}</p>
                 </div>
 
+                <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <p className="text-xs text-gray-500 mb-1">Total Heures</p>
+                    <p className="text-xl md:text-2xl font-bold">
+                        {statsData.reduce((sum, p) => sum + p.hoursWorked, 0).toFixed(2)} h
+                    </p>
+                </div>
 
+                <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <p className="text-xs text-gray-500 mb-1">Total Brut</p>
+                    <p className="text-xl md:text-2xl font-bold">
+                        {statsData.reduce((sum, p) => sum + Math.floor(p.grossSalary), 0)} €
+                    </p>
+                </div>
 
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <p className="text-sm text-gray-500 mb-1">Total Net à Payer</p>
-                    <p className="text-2xl md:text-3xl font-bold">
+                <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <p className="text-xs text-gray-500 mb-1">Total Net à Payer</p>
+                    <p className="text-xl md:text-2xl font-bold">
                         {statsData.reduce((sum, p) => sum + p.netToPay, 0).toFixed(2)} €
                     </p>
                 </div>
 
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <p className="text-sm text-gray-500 mb-1">Total Net Avant Impôts</p>
-                    <p className="text-2xl md:text-3xl font-bold">
+                <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <p className="text-xs text-gray-500 mb-1">Total Net Avant Impôts</p>
+                    <p className="text-xl md:text-2xl font-bold">
                         {statsData.reduce((sum, p) => sum + p.netBeforeTax, 0).toFixed(2)} €
-                    </p>
-                </div>
-
-                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <p className="text-sm text-gray-500 mb-1">Total Heures</p>
-                    <p className="text-2xl md:text-3xl font-bold">
-                        {statsData.reduce((sum, p) => sum + p.hoursWorked, 0).toFixed(2)} h
                     </p>
                 </div>
             </div>
@@ -415,11 +420,33 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
 
                                 <th
                                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                                    onClick={() => toggleSort('grossSalary')}
+                                >
+                                    <div className="flex items-center gap-1">
+                                        Salaire Brut
+                                        {sortConfig.key === 'grossSalary' && (
+                                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-500" /> : <ArrowDown className="w-3 h-3 text-blue-500" />
+                                        )}
+                                    </div>
+                                </th>
+                                <th
+                                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
                                     onClick={() => toggleSort('netTaxable')}
                                 >
                                     <div className="flex items-center gap-1">
                                         Net Imposable
                                         {sortConfig.key === 'netTaxable' && (
+                                            sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-500" /> : <ArrowDown className="w-3 h-3 text-blue-500" />
+                                        )}
+                                    </div>
+                                </th>
+                                <th
+                                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors group"
+                                    onClick={() => toggleSort('netBeforeTax')}
+                                >
+                                    <div className="flex items-center gap-1">
+                                        Net Avant Impôt
+                                        {sortConfig.key === 'netBeforeTax' && (
                                             sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-500" /> : <ArrowDown className="w-3 h-3 text-blue-500" />
                                         )}
                                     </div>
@@ -513,16 +540,23 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
                                             )}
                                         </td>
                                         <td className="px-4 py-4 whitespace-nowrap">
+                                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                                {payslip.grossSalary > 0 ? `${payslip.grossSalary.toFixed(2)} €` : '—'}
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-4 whitespace-nowrap">
                                             <div className="text-sm text-gray-500">
                                                 {payslip.netTaxable > 0 ? `${payslip.netTaxable.toFixed(2)} € (Impos.)` : '—'}
                                             </div>
                                         </td>
                                         <td className="px-4 py-4 whitespace-nowrap">
+                                            <div className="text-sm text-gray-500">
+                                                {payslip.netBeforeTax > 0 ? `${payslip.netBeforeTax.toFixed(2)} €` : '—'}
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-4 whitespace-nowrap">
                                             <div className="text-sm font-semibold text-green-600">
                                                 {payslip.netToPay > 0 ? `${payslip.netToPay.toFixed(2)} € (Net)` : '—'}
-                                            </div>
-                                            <div className="text-xs text-gray-500">
-                                                {payslip.netBeforeTax > 0 ? `${payslip.netBeforeTax.toFixed(2)} € (Av. Impôt)` : ''}
                                             </div>
                                         </td>
                                         <td className="px-4 py-4 whitespace-nowrap">
