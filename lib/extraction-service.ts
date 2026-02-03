@@ -23,7 +23,7 @@ export async function extractDataTraditional(
 
         // Extraction du texte avec unpdf
         const resultText = await extractText(arrayBuffer);
-        let text = typeof resultText === 'string' ? resultText : (resultText as any).text;
+        let text = typeof resultText === 'string' ? resultText : (resultText as { text: string | string[] }).text;
 
         // Si c'est un tableau (plusieurs pages), on joint
         if (Array.isArray(text)) {
@@ -36,15 +36,21 @@ export async function extractDataTraditional(
 
         // Patterns Regex pour les bulletins français standard (plus robustes)
         const patterns = {
-            employeeName: /(?:Esparsa Michel|M\.\s+([A-ZÀ-Ÿa-zÀ-ÿ\s\-]+))\s*(?=Heures|Salaire|Bénéficiaire)/i,
-            employerName: /(?:Aiouaz Sami|Employeur\s*(?:M\.\s+)?([A-ZÀ-Ÿa-zÀ-ÿ\s\-]+))/i,
-            netToPay: /(?:NET\s+À\s+PAYER|NET\s+A\s+PAYER|NET\s+PAYÉ|À\s+PAYER|TOTAL\s+NET|Net\s+Social|Net\s+payé\s+en\s+euros)\s*[:\s\*]*([\d\s,.]+(?:€|EUR)?)/i,
-            netBeforeTax: /(?:NET\s+AVANT\s+IMPÔT|NET\s+AVANT\s+PAS|NET\s+IMPÔTS?|NET\s+AVANT\s+IMP|NET\s+AVANT\s+I\.R|NET\s+IMPÔT\s+SUR\s+LE\s+REVENU)\s*[:\s\*]*([\d\s,.]+)/i,
-            netTaxable: /(?:NET\s+IMPOSABLE|CUMUL\s+IMPOSABLE|NET\s+FISC|NET\s+FISCAL|Montant\s+imposable)\s*[:\s\*]*([\d\s,.]+)/i,
-            grossSalary: /(?:SALAIRE\s+BRUT|TOTAL\s+BRUT|BRUT\s+DU\s+MOIS|TOTAL\s+DES\s+BRUTS|Salaire\s+Brut\s+TOTAL)\s*[:\s\*]*([\d\s,.]+)/i,
-            taxAmount: /(?:IMPÔT\s+SUR\s+LE\s+REVENU|RETENUE\s+À\s+LA\s+SOURCE|P\.A\.S|MONTANT\s+PAS|PAS\s+PRÉLEVÉ|Prélèvement\s+à\s+la\s+source|Montant\s+retenu)\s*[:\s\*]*([\d\s,.]+)/i,
-            hoursWorked: /(?:HEURES?\s+TRAVAILLÉES?|TOTAL\s+HEURES?|HEURES?\s+DU\s+MOIS|BASE\s+35H|NB\s+HEURES|Nombre\s+d'heures|Heures\s+payées)\s*[:\s\*]*([\d\s,.]+)/i,
-            hourlyNetTaxable: /(?:TAUX\s+HORAIRE\s+NET\s+IMP|NET\s+HORAIRE|TAUX\s+HORAIRE|Taux\s+h\.net\s+imp\.)\s*[:\s\*]*([\d\s,.]+)/i,
+            // Salarié : On cherche spécifiquement Michel Esparsa ou un bloc M./MME/MONSIEUR après l'employeur
+            employeeName: /(?:Esparsa Michel|MONSIEUR\s+MICHEL\s+ESPARSA|MADAME\s+([A-ZÀ-Ÿ\s\-]{3,})|MONSIEUR\s+([A-ZÀ-Ÿ\s\-]{3,})|M\.\s+([A-ZÀ-Ÿa-zÀ-ÿ\s\-]{3,}))\s*(?=[\d\s]+[A-Z]|Heures|Salaire|Document|Nº Cesu)/i,
+            // Employeur : Stéphanie Villemagne ou bloc après Nº Cesu employeur ou bloc après "Employeur"
+            employerName: /(?:Aiouaz Sami|STEPHANIE\s+VILLEMAGNE|MADAME\s+STEPHANIE\s+VILLEMAGNE|^Employeur\s*[:\s]*(?:\r?\n)?\s*(?:M\.|MME|MADAME|MONSIEUR)?\s*([A-ZÀ-Ÿa-zÀ-ÿ\s\-]{3,})|Nº Cesu employeur\s*:\s*[A-Z0-9]+\s+([A-ZÀ-Ÿ\s\-]{3,}))/im,
+            siretNumber: /(?:SIRET|Nº Cesu salarié)[\s\w]*\s*(\d{14})/i,
+            urssafNumber: /(?:URSSAF|Nº Cesu employeur)\s*:?\s*([A-Z0-9\s]{5,20})(?=\s|$)/i,
+            netToPay: /(?:NET A PAYER|NET SOCIAL|Net à payer|Net payé en euros|Net à payer directement|Net à payer par l'employeur)\s*[:\s\*]*([\d\s,.]+)/i,
+            netBeforeTax: /(?:NET AVANT IMPÔT|Net à payer avant impôt|Net imposable)\s*[:\s\*]*([\d\s,.]+)/i,
+            netTaxable: /(?:NET IMPOSABLE|Net imposable|Salaire net imposable)\s*[:\s\*]*([\d\s,.]+)/i,
+            grossSalary: /(?:SALAIRE BRUT TOTAL|Salaire Brut|Total Brut|Salaire Brut Total|MALADIE|VIEILLESSE)\s*[:\s\*]*([\d\s,.]+)(?:\s*x|\s|$)/i,
+            taxAmount: /(?:MONTANT DE L'IMPÔT|Total retenues|CSG[\s\w]*=\s*|Retenu à la source|Impôt sur le revenu prélevé à la source)\s*[:\s\*]*([\d\s,.]+)/i,
+            hoursWorked: /(?:Nombre d'heures(?: travaillées)?|Nb heures|Total heures|Heures)\s*[:\s\*]*([\d\s,.]+)/i,
+            hourlyNetTaxable: /(?:TAUX\s+HORAIRE\s+NET\s+IMP|NET\s+HORAIRE|TAUX\s+HORAIRE|Taux\s+h\.net\s+imp\.|Salaire horaire net)\s*[:\s\*]*([\d\s,.]+)/i,
+            // Période : ultra-flexible pour supporter les sauts de lignes entre le titre et la date
+            period: /(?:Paie du|Période du|BULLETIN DE SALAIRE)[\s\:\*\r\n]*(\d{2})[/-](\d{2})[/-](\d{4})/i
         };
 
         const result: Partial<AIExtractedData> = {};
@@ -60,27 +66,26 @@ export async function extractDataTraditional(
 
         // Extraction par Regex
         // SIRET (14 chiffres)
-        const siretMatch = text.match(/(?:SIRET|N°\s+SIRET)\s*[:\s]*(\d{14})/i) || text.match(/(\d{3}\s*\d{3}\s*\d{3}\s*\d{5})/);
+        const siretMatch = text.match(patterns.siretNumber);
         if (siretMatch) {
             result.siretNumber = (siretMatch[1] || siretMatch[0]).replace(/\s/g, '');
         }
 
         // URSSAF
-        const urssafMatch = text.match(/(?:URSSAF|N°\s+URSSAF|COMPTE\s+EMPLOYEUR)\s*[:\s]*([A-Z0-9\s]+)/i);
+        const urssafMatch = text.match(patterns.urssafNumber);
         if (urssafMatch) {
-            // S'arrêter à la première ligne ou double espace
-            result.urssafNumber = urssafMatch[1].split('\n')[0].trim();
+            result.urssafNumber = (urssafMatch[1] || urssafMatch[0]).trim().split('\n')[0];
         }
 
         // Noms
-        const employeeMatch = text.match(/M\.\s+ESPARSA\s+Michel/i) || text.match(patterns.employeeName);
+        const employeeMatch = text.match(patterns.employeeName);
         if (employeeMatch) {
             result.employeeName = (employeeMatch[1] || employeeMatch[0]).trim();
         }
 
-        const employerMatch = text.match(/M\.\s+AIOUAZ\s+SAMI/i) || text.match(patterns.employerName);
+        const employerMatch = text.match(patterns.employerName);
         if (employerMatch) {
-            result.employerName = (employerMatch[1] || employerMatch[0]).trim();
+            result.employerName = (employerMatch[1] || employerMatch[2] || employerMatch[0]).trim();
         }
 
         const netToPayMatch = text.match(patterns.netToPay);
@@ -113,14 +118,14 @@ export async function extractDataTraditional(
         }
 
         // Détection de la période (MM/YYYY ou MMM YYYY ou DD/MM/YYYY)
-        const periodMatch = text.match(/(?:DU|PÉRIODE|Période\s+du|Bulletin\s+du)\s*(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})/i) ||
+        const periodMatch = text.match(patterns.period) ||
             text.match(/(?:DU|PÉRIODE|MOIS)\s*[:\s]*(\d{2})[\/\.-](\d{4})/i);
 
         if (periodMatch) {
-            if (periodMatch.length === 4) { // DD/MM/YYYY variant
+            if (periodMatch[2] && periodMatch[3]) { // DD/MM/YYYY variant (groups 1=DD, 2=MM, 3=YYYY)
                 result.periodMonth = parseInt(periodMatch[2]);
                 result.periodYear = parseInt(periodMatch[3]);
-            } else { // MM/YYYY variant
+            } else if (periodMatch[1] && periodMatch[2]) { // MM/YYYY variant
                 result.periodMonth = parseInt(periodMatch[1]);
                 result.periodYear = parseInt(periodMatch[2]);
             }
@@ -128,8 +133,20 @@ export async function extractDataTraditional(
 
         const processingTimeMs = Date.now() - startTime;
 
-        // Si on a les champs critiques, on valide
-        if (result.netToPay && result.grossSalary) {
+        // Définir les champs obligatoires pour considérer l'extraction comme "réussie"
+        const requiredFields: (keyof AIExtractedData)[] = [
+            'employeeName',
+            'employerName',
+            'periodMonth',
+            'periodYear',
+            'netToPay',
+            'grossSalary'
+        ];
+
+        const missingFields = requiredFields.filter(field => !result[field]);
+
+        // Si on a tous les champs critiques, on tente la validation Zod
+        if (missingFields.length === 0) {
             let validated: AIExtractedData;
             try {
                 validated = aiExtractedDataSchema.parse({
@@ -173,14 +190,17 @@ export async function extractDataTraditional(
             }
         }
 
-        // Pas assez de données fiables
+        // Sinon, c'est un échec pour données incomplètes
+        const errorMessage = `Données incomplètes extraites par méthode traditionnelle. Champs manquants : ${missingFields.join(', ')}`;
+        console.warn(`❌ ${errorMessage}`);
+
         await ExtractionLogger.log({
             ...fileMetadata,
             fileUrl,
             extractionMethod: 'traditional',
             success: false,
             errorType: 'validation_error',
-            errorMessage: 'Données insuffisantes extraites par méthode traditionnelle (regex)',
+            errorMessage,
             extractedData: result,
             processingTimeMs,
             payslipId: context?.payslipId,

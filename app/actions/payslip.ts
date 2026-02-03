@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma';
 import type { Payslip, UpdatePayslipData } from '@/types/payslip';
 import { analyzeDocumentHybrid, extractDataTraditional } from '@/lib/extraction-service';
 import { analyzeDocument } from '@/lib/ai-service';
-import { fileUploadSchema, createPayslipSchema, updatePayslipSchema } from '@/lib/validations';
+import { fileUploadSchema, createPayslipSchema, updatePayslipSchema, type AIExtractedData } from '@/lib/validations';
 
 import type { ActionResult } from '@/types/payslip';
 
@@ -377,13 +377,28 @@ export async function reanalyzePayslipAction(
         const context = { payslipId: id };
 
         // 2. Relancer l'analyse selon la méthode choisie
-        let extractedData;
+        interface FullExtractionResult extends AIExtractedData {
+            aiModel?: string | null;
+            inputTokens?: number | null;
+            outputTokens?: number | null;
+        }
+
+        let extractedData: FullExtractionResult;
         if (method === 'ai') {
             extractedData = await analyzeDocument(existingPayslip.fileUrl, fileMetadata, context);
         } else {
             const result = await extractDataTraditional(existingPayslip.fileUrl, fileMetadata, context);
             if (!result) {
-                return { success: false, error: 'L\'extraction traditionnelle a échoué. Consultez les logs pour plus de détails.' };
+                const errorMessage = 'L\'extraction traditionnelle a échoué (données insuffisantes). Consultez les logs pour plus de détails.';
+                await prisma.payslip.update({
+                    where: { id },
+                    data: {
+                        processingStatus: 'failed',
+                        errorMessage,
+                    }
+                });
+                revalidatePath('/dashboard');
+                return { success: false, error: errorMessage };
             }
             extractedData = result;
         }
@@ -400,9 +415,9 @@ export async function reanalyzePayslipAction(
                 ...payslipData,
                 processingStatus: 'completed',
                 errorMessage: null,
-                aiModel: (extractedData as any).aiModel || null,
-                inputTokens: (extractedData as any).inputTokens || null,
-                outputTokens: (extractedData as any).outputTokens || null,
+                aiModel: extractedData.aiModel || null,
+                inputTokens: extractedData.inputTokens || null,
+                outputTokens: extractedData.outputTokens || null,
             },
         });
 
@@ -416,9 +431,21 @@ export async function reanalyzePayslipAction(
 
     } catch (error) {
         console.error('❌ Erreur dans reanalyzePayslipAction:', error);
+
+        // Mettre à jour le statut en cas d'erreur
+        const errorMessage = error instanceof Error ? error.message : 'Erreur lors de la ré-analyse';
+        await prisma.payslip.update({
+            where: { id },
+            data: {
+                processingStatus: 'failed',
+                errorMessage,
+            }
+        });
+        revalidatePath('/dashboard');
+
         return {
             success: false,
-            error: error instanceof Error ? error.message : 'Erreur lors de la ré-analyse',
+            error: errorMessage,
         };
     }
 }

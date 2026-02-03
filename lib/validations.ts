@@ -12,10 +12,10 @@ export const fileUploadSchema = z.object({
 
 // Validation données extraites par IA
 export const aiExtractedDataSchema = z.object({
-    employeeName: z.string().min(1).max(255).optional().nullable(),
-    employerName: z.string().min(1).max(255).optional().nullable(),
-    periodMonth: z.number().int().min(1).max(12).optional().nullable(),
-    periodYear: z.number().int().min(2000).max(2100).optional().nullable(),
+    employeeName: z.string().min(1).max(255),
+    employerName: z.string().min(1).max(255),
+    periodMonth: z.number().int().min(1).max(12),
+    periodYear: z.number().int().min(2000).max(2100),
     netToPay: z.number().nonnegative(), // Net à payer (après impôts)
     netBeforeTax: z.number().nonnegative(), // Net à payer avant impôts
     netTaxable: z.number().nonnegative(), // Net imposable
