@@ -26,6 +26,8 @@ export const aiExtractedDataSchema = z.object({
     employeeAddress: z.string().optional().nullable(),
     siretNumber: z.string().optional().nullable(),
     urssafNumber: z.string().optional().nullable(),
+    cesuNumber: z.string().optional().nullable(),
+    isCesu: z.boolean().optional().nullable(),
     aiModel: z.string().optional().nullable(),
 });
 
@@ -59,6 +61,7 @@ export const updatePayslipSchema = z.object({
     employeeAddress: z.string().optional().nullable(),
     siretNumber: z.string().optional().nullable(),
     urssafNumber: z.string().optional().nullable(),
+    cesuNumber: z.string().optional().nullable(),
     processingStatus: z.string().optional(),
 });
 

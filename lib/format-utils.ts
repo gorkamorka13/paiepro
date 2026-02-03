@@ -8,22 +8,14 @@
 export function formatName(name: string | null | undefined): string {
   if (!name) return '';
 
-  // 1. Remplacements de base (Monsieur -> M., Madame -> Mme)
-  // On gère aussi les cas déjà abrégés avec ou sans points pour homogénéiser
+  // 1. Suppression des titres (Monsieur, Madame, M., Mme, etc.)
   let result = name
-    .replace(/\bMonsieur\b/gi, 'M.')
-    .replace(/\bMadame\b/gi, 'Mme')
-    .replace(/\bM\b\s*\./g, 'M.')
-    .replace(/\bMme\b\s*\./g, 'Mme')
+    .replace(/\b(Monsieur|Madame|monsieur|madame)\b/gi, '')
+    .replace(/\b(M|Mme)\b\s*\.?/gi, '') // Supprime M. ou Mme. ou M ou Mme
     .trim();
 
   // 2. Séparer en mots pour traiter la casse
-  // On essaie de détecter le préfixe
-  const parts = result.split(/\s+/);
-  let prefix = '';
-  if (parts.length > 0 && (parts[0] === 'M.' || parts[0] === 'Mme')) {
-    prefix = parts.shift() + ' ';
-  }
+  const parts = result.split(/\s+/).filter(p => p.length > 0);
 
   if (parts.length >= 2) {
     // Heuristique pour le nom de famille (souvent le premier mot ou celui déjà en majuscules)
@@ -43,11 +35,32 @@ export function formatName(name: string | null | undefined): string {
       firstName = parts.slice(1).join(' ').toLowerCase();
     }
 
-    result = `${prefix}${lastName} ${firstName}`.trim();
+    // On s'assure que si firstName existe, on lui met une majuscule au début (Optionnel mais propre)
+    // Le user a demandé "prénom en minuscule", on va suivre à la lettre : tout en minuscule.
+
+    result = `${lastName} ${firstName}`.trim();
   } else if (parts.length === 1) {
     // Un seul mot : on le met en majuscule par défaut
-    result = `${prefix}${parts[0].toUpperCase()}`.trim();
+    result = `${parts[0].toUpperCase()}`.trim();
   }
 
   return result;
+}
+
+/**
+ * Nettoie un numéro CESU :
+ * - Commence par Z (insensible à la casse, forcé en majuscule)
+ * - Puis uniquement des chiffres
+ * - Supprime tout le reste (espaces, autres lettres)
+ */
+export function cleanCesuNumber(cesu: string | null | undefined): string | null {
+  if (!cesu) return null;
+
+  // 1. Extraire la partie commençant par Z
+  const match = cesu.match(/Z[\d\s]*/i);
+  if (!match) return null;
+
+  // 2. Garder 'Z' + uniquement les chiffres
+  const digits = match[0].replace(/\D/g, '');
+  return `Z${digits}`;
 }

@@ -7,6 +7,7 @@ import type { Payslip, UpdatePayslipData } from '@/types/payslip';
 import { analyzeDocumentHybrid, extractDataTraditional } from '@/lib/extraction-service';
 import { analyzeDocument } from '@/lib/ai-service';
 import { fileUploadSchema, createPayslipSchema, updatePayslipSchema, type AIExtractedData } from '@/lib/validations';
+import { formatName, cleanCesuNumber } from '@/lib/format-utils';
 
 import type { ActionResult } from '@/types/payslip';
 
@@ -94,12 +95,19 @@ export async function processPayslipAction(
         // 4. Validation des données extraites
         let payslipData;
         try {
+            const cleanedData = {
+                ...extractedData,
+                employerName: formatName(extractedData.employerName),
+                employeeName: formatName(extractedData.employeeName),
+                cesuNumber: cleanCesuNumber(extractedData.cesuNumber),
+            };
+
             payslipData = createPayslipSchema.parse({
                 fileName: file.name,
                 fileUrl: blobUrl,
                 fileSize: file.size,
                 mimeType: file.type,
-                ...extractedData,
+                ...cleanedData,
                 extractedJson: extractedData,
             });
         } catch (validationErr) {
@@ -408,8 +416,15 @@ export async function reanalyzePayslipAction(
         }
 
         // 3. Valider et mettre à jour
-        const payslipData = updatePayslipSchema.parse({
+        const cleanedData = {
             ...extractedData,
+            employerName: formatName(extractedData.employerName),
+            employeeName: formatName(extractedData.employeeName),
+            cesuNumber: cleanCesuNumber(extractedData.cesuNumber),
+        };
+
+        const payslipData = updatePayslipSchema.parse({
+            ...cleanedData,
             extractedJson: extractedData,
         });
 

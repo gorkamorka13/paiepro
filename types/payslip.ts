@@ -11,6 +11,7 @@ export interface Payslip {
     employerName: string | null;
     siretNumber: string | null;
     urssafNumber: string | null;
+    cesuNumber: string | null;
     netToPay: number;
     netBeforeTax: number;
     netTaxable: number;
@@ -34,6 +35,7 @@ export interface ExtractedPayslipData {
     employerName: string | null;
     siretNumber: string | null;
     urssafNumber: string | null;
+    cesuNumber: string | null;
     periodMonth: number | null;
     periodYear: number | null;
     grossSalary: number;

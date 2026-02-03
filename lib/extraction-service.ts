@@ -3,6 +3,7 @@ import { ZodError } from 'zod';
 import { aiExtractedDataSchema, type AIExtractedData } from './validations';
 import { analyzeDocument } from './ai-service';
 import { ExtractionLogger } from './extraction-logger';
+import { cleanCesuNumber } from './format-utils';
 
 /**
  * Tente d'extraire les données d'un bulletin de paie sans utiliser l'IA.
@@ -49,6 +50,7 @@ export async function extractDataTraditional(
             taxAmount: /(?:MONTANT DE L'IMPÔT|Total retenues|CSG[\s\w]*=\s*|Retenu à la source|Impôt sur le revenu prélevé à la source)\s*[:\s\*]*([\d\s,.]+)/i,
             hoursWorked: /(?:Nombre d'heures(?: travaillées)?|Nb heures|Total heures|Heures)\s*[:\s\*]*([\d\s,.]+)/i,
             hourlyNetTaxable: /(?:TAUX\s+HORAIRE\s+NET\s+IMP|NET\s+HORAIRE|TAUX\s+HORAIRE|Taux\s+h\.net\s+imp\.|Salaire horaire net)\s*[:\s\*]*([\d\s,.]+)/i,
+            cesuNumber: /(?:Nº Cesu (?:salarié|employeur)|Nº Cesu)\s*:?\s*(Z[\d\s]+)(?=\s|$)/i,
             // Période : ultra-flexible pour supporter les sauts de lignes entre le titre et la date
             period: /(?:Paie du|Période du|BULLETIN DE SALAIRE)[\s\:\*\r\n]*(\d{2})[/-](\d{2})[/-](\d{4})/i
         };
@@ -117,6 +119,21 @@ export async function extractDataTraditional(
             if (result.netBeforeTax === 0) result.netBeforeTax = result.netToPay;
         }
 
+        result.cesuNumber = cleanCesuNumber(text.match(patterns.cesuNumber)?.[1]);
+
+        // Logique d'override CESU : Si on a un numéro CESU commençant par Z
+        // et que SIRET est absent ou URSSAF est absent/très court, on priorise le CESU.
+        if (result.cesuNumber?.startsWith('Z')) {
+            const hasNoSiret = !result.siretNumber;
+            const hasMinimalUrssaf = !result.urssafNumber || result.urssafNumber.length <= 2;
+
+            if (hasNoSiret || hasMinimalUrssaf) {
+                result.siretNumber = null;
+                result.urssafNumber = null;
+                result.isCesu = true;
+            }
+        }
+
         // Détection de la période (MM/YYYY ou MMM YYYY ou DD/MM/YYYY)
         const periodMatch = text.match(patterns.period) ||
             text.match(/(?:DU|PÉRIODE|MOIS)\s*[:\s]*(\d{2})[\/\.-](\d{4})/i);
@@ -130,6 +147,10 @@ export async function extractDataTraditional(
                 result.periodYear = parseInt(periodMatch[2]);
             }
         }
+
+        // Détecter si c'est un document CESU
+        const isCesu = text.includes('Nº Cesu') || text.includes('CESU');
+        result.isCesu = isCesu;
 
         const processingTimeMs = Date.now() - startTime;
 

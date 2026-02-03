@@ -9,9 +9,9 @@ const SYSTEM_PROMPT = `Tu es un expert en extraction de données de bulletins de
 Analyse le document fourni et extrais UNIQUEMENT les informations suivantes au format JSON strict :
 
 {
-  "employeeName": "NOM Prénom (ex: M. BICHE Arnaud)",
+  "employeeName": "NOM Prénom (ex: BICHE Arnaud - SANS Monsieur/Madame)",
   "employeeAddress": "Adresse complète",
-  "employerName": "Raison sociale employeur",
+  "employerName": "Raison sociale employeur (SANS Monsieur/Madame/M./Mme)",
   "siretNumber": "SIRET (14 chiffres)",
   "urssafNumber": "N° URSSAF ou Compte Employeur",
   "periodMonth": 1-12,
@@ -30,6 +30,7 @@ CONSIGNES CRITIQUES :
 - NET À PAYER : C'est le montant final viré sur le compte.
 - NET FISCAL : Cherche "Net Social Fiscal" ou "Net Imposable".
 - SIRET : Cherche un numéro de 14 chiffres, souvent près de l'adresse de l'employeur.
+- CESU : Si présent, il commence TOUJOURS par 'Z' suivi uniquement de chiffres (ex: Z1234567). IGNORE toute autre lettre après les chiffres.
 - RÈGLE : Réponds UNIQUEMENT avec le JSON pur. Pas de markdown, pas de texte. Si une donnée est absente, mets null.`;
 
 export async function analyzeDocument(
