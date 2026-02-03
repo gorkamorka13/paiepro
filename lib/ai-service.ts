@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { ZodError } from 'zod';
 import { aiExtractedDataSchema, type AIExtractedData } from './validations';
 import { ExtractionLogger } from './extraction-logger';
@@ -62,6 +62,30 @@ export async function analyzeDocument(
                 temperature: 0.1,
                 maxOutputTokens: 2048,
                 responseMimeType: 'application/json',
+                responseSchema: {
+                    type: SchemaType.OBJECT,
+                    properties: {
+                        employeeName: { type: SchemaType.STRING },
+                        employeeAddress: { type: SchemaType.STRING },
+                        employerName: { type: SchemaType.STRING },
+                        siretNumber: { type: SchemaType.STRING },
+                        urssafNumber: { type: SchemaType.STRING },
+                        periodMonth: { type: SchemaType.NUMBER },
+                        periodYear: { type: SchemaType.NUMBER },
+                        netToPay: { type: SchemaType.NUMBER },
+                        netBeforeTax: { type: SchemaType.NUMBER },
+                        netTaxable: { type: SchemaType.NUMBER },
+                        grossSalary: { type: SchemaType.NUMBER },
+                        taxAmount: { type: SchemaType.NUMBER },
+                        hoursWorked: { type: SchemaType.NUMBER },
+                        hourlyNetTaxable: { type: SchemaType.NUMBER }
+                    },
+                    required: [
+                        'employeeName', 'employerName', 'periodMonth', 'periodYear',
+                        'netToPay', 'netBeforeTax', 'netTaxable', 'grossSalary',
+                        'taxAmount', 'hoursWorked'
+                    ]
+                }
             },
         });
 

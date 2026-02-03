@@ -26,7 +26,7 @@ export function Sidebar() {
     const menuItems = [
         { icon: Home, label: 'Accueil', href: '/' },
         { icon: BarChart3, label: 'Dashboard', href: '/dashboard' },
-        { icon: AlertCircle, label: 'Logs IA', href: '/admin/extraction-logs' },
+        { icon: AlertCircle, label: 'Logs extraction', href: '/admin/extraction-logs' },
     ];
 
     const toggleTheme = () => {

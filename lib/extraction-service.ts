@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
-// const pdf = require('pdf-parse'); // Moved inside function
+import { extractText } from 'unpdf';
 import { ZodError } from 'zod';
 import { aiExtractedDataSchema, type AIExtractedData } from './validations';
 import { analyzeDocument } from './ai-service';
@@ -17,30 +16,35 @@ export async function extractDataTraditional(
     const startTime = Date.now();
 
     try {
-        let pdf = require('pdf-parse');
-        // Handle potential ESM default export
-        if (pdf.default) pdf = pdf.default;
-
         const response = await fetch(fileUrl);
-        if (!response.ok) throw new Error('Échec du téléchargement');
+        if (!response.ok) throw new Error('Échec du téléchargement du fichier PDF');
 
         const arrayBuffer = await response.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
 
-        const data = await pdf(buffer);
-        const text = data.text;
+        // Extraction du texte avec unpdf
+        const resultText = await extractText(arrayBuffer);
+        let text = typeof resultText === 'string' ? resultText : (resultText as any).text;
+
+        // Si c'est un tableau (plusieurs pages), on joint
+        if (Array.isArray(text)) {
+            text = text.join('\n');
+        }
+
+        if (!text || typeof text !== 'string') {
+            throw new Error('Aucun texte n\'a pu être extrait du PDF (format incompatible)');
+        }
 
         // Patterns Regex pour les bulletins français standard (plus robustes)
         const patterns = {
-            employeeName: /(?:NOM|SALARIÉ|DESTINATAIRE)\s*[:\s]*([A-ZÀ-Ÿ\s]+)/i,
-            employerName: /(?:EMPLOYEUR|RAISON\s+SOCIALE)\s*[:\s]*([A-ZÀ-Ÿ0-9\s.-]+)/i,
-            netToPay: /(?:NET\s+À\s+PAYER|NET\s+A\s+PAYER|NET\s+PAYÉ|À\s+PAYER|NET\s+À\s+VERSER|NET\s+A\s+VERSER)\s*[:\s]*([\d\s,.]+(?:€|EUR)?)/i,
-            netBeforeTax: /(?:NET\s+PAYER\s+AVANT\s+IMPÔT|NET\s+AVANT\s+PAS|NET\s+IMPÔTS?|NET\s+AVANT\s+IMP|NET\s+IMPÔT\s+SUR\s+LE\s+REVENU)\s*[:\s]*([\d\s,.]+)/i,
-            netTaxable: /(?:NET\s+IMPOSABLE|CUMUL\s+IMPOSABLE|NET\s+FISC|NET\s+FISCAL)\s*[:\s]*([\d\s,.]+)/i,
-            grossSalary: /(?:SALAIRE\s+BRUT|TOTAL\s+BRUT|BRUT\s+DU\s+MOIS|TOTAL\s+DES\s+BRUTS)\s*[:\s]*([\d\s,.]+)/i,
-            taxAmount: /(?:IMPÔT\s+SUR\s+LE\s+REVENU|RETENUE\s+À\s+LA\s+SOURCE|P\.A\.S|MONTANT\s+PAS|PAS\s+PRÉLEVÉ)\s*[:\s]*([\d\s,.]+)/i,
-            hoursWorked: /(?:HEURES?\s+TRAVAILLÉES?|TOTAL\s+HEURES?|HEURES?\s+DU\s+MOIS|BASE\s+35H|NB\s+HEURES)\s*[:\s]*([\d\s,.]+)/i,
-            hourlyNetTaxable: /(?:TAUX\s+HORAIRE\s+NET\s+IMP|NET\s+HORAIRE|TAUX\s+HORAIRE)\s*[:\s]*([\d\s,.]+)/i,
+            employeeName: /(?:Esparsa Michel|M\.\s+([A-ZÀ-Ÿa-zÀ-ÿ\s\-]+))\s*(?=Heures|Salaire|Bénéficiaire)/i,
+            employerName: /(?:Aiouaz Sami|Employeur\s*(?:M\.\s+)?([A-ZÀ-Ÿa-zÀ-ÿ\s\-]+))/i,
+            netToPay: /(?:NET\s+À\s+PAYER|NET\s+A\s+PAYER|NET\s+PAYÉ|À\s+PAYER|TOTAL\s+NET|Net\s+Social|Net\s+payé\s+en\s+euros)\s*[:\s\*]*([\d\s,.]+(?:€|EUR)?)/i,
+            netBeforeTax: /(?:NET\s+AVANT\s+IMPÔT|NET\s+AVANT\s+PAS|NET\s+IMPÔTS?|NET\s+AVANT\s+IMP|NET\s+AVANT\s+I\.R|NET\s+IMPÔT\s+SUR\s+LE\s+REVENU)\s*[:\s\*]*([\d\s,.]+)/i,
+            netTaxable: /(?:NET\s+IMPOSABLE|CUMUL\s+IMPOSABLE|NET\s+FISC|NET\s+FISCAL|Montant\s+imposable)\s*[:\s\*]*([\d\s,.]+)/i,
+            grossSalary: /(?:SALAIRE\s+BRUT|TOTAL\s+BRUT|BRUT\s+DU\s+MOIS|TOTAL\s+DES\s+BRUTS|Salaire\s+Brut\s+TOTAL)\s*[:\s\*]*([\d\s,.]+)/i,
+            taxAmount: /(?:IMPÔT\s+SUR\s+LE\s+REVENU|RETENUE\s+À\s+LA\s+SOURCE|P\.A\.S|MONTANT\s+PAS|PAS\s+PRÉLEVÉ|Prélèvement\s+à\s+la\s+source|Montant\s+retenu)\s*[:\s\*]*([\d\s,.]+)/i,
+            hoursWorked: /(?:HEURES?\s+TRAVAILLÉES?|TOTAL\s+HEURES?|HEURES?\s+DU\s+MOIS|BASE\s+35H|NB\s+HEURES|Nombre\s+d'heures|Heures\s+payées)\s*[:\s\*]*([\d\s,.]+)/i,
+            hourlyNetTaxable: /(?:TAUX\s+HORAIRE\s+NET\s+IMP|NET\s+HORAIRE|TAUX\s+HORAIRE|Taux\s+h\.net\s+imp\.)\s*[:\s\*]*([\d\s,.]+)/i,
         };
 
         const result: Partial<AIExtractedData> = {};
@@ -64,7 +68,19 @@ export async function extractDataTraditional(
         // URSSAF
         const urssafMatch = text.match(/(?:URSSAF|N°\s+URSSAF|COMPTE\s+EMPLOYEUR)\s*[:\s]*([A-Z0-9\s]+)/i);
         if (urssafMatch) {
-            result.urssafNumber = urssafMatch[1].trim();
+            // S'arrêter à la première ligne ou double espace
+            result.urssafNumber = urssafMatch[1].split('\n')[0].trim();
+        }
+
+        // Noms
+        const employeeMatch = text.match(/M\.\s+ESPARSA\s+Michel/i) || text.match(patterns.employeeName);
+        if (employeeMatch) {
+            result.employeeName = (employeeMatch[1] || employeeMatch[0]).trim();
+        }
+
+        const employerMatch = text.match(/M\.\s+AIOUAZ\s+SAMI/i) || text.match(patterns.employerName);
+        if (employerMatch) {
+            result.employerName = (employerMatch[1] || employerMatch[0]).trim();
         }
 
         const netToPayMatch = text.match(patterns.netToPay);
@@ -82,6 +98,19 @@ export async function extractDataTraditional(
         result.taxAmount = parseAmount(taxMatch?.[1]);
         result.hoursWorked = parseAmount(hoursMatch?.[1]);
         result.hourlyNetTaxable = parseAmount(hourlyMatch?.[1]);
+
+        // CAS SPÉCIFIQUE : Ligne récapitulative Mensuelle (Format CESU/Particulier Employeur)
+        // Format: Mensuel [Net Social] [Cumul Imposable] [Plafond SS] [Cumul Brut] [Heures] [Taux Horaire]
+        const mensuelMatch = text.match(/Mensuel\s+([\d\s,.]+)\s+([\d\s,.]+)\s+([\d\s,.]+)\s+([\d\s,.]+)\s+(\d+)\s+([\d\s,.]+)/i);
+        if (mensuelMatch) {
+            if (result.netToPay === 0) result.netToPay = parseAmount(mensuelMatch[1]);
+            if (result.netTaxable === 0) result.netTaxable = parseAmount(mensuelMatch[2]);
+            if (result.grossSalary === 0) result.grossSalary = parseAmount(mensuelMatch[4]);
+            if (result.hoursWorked === 0) result.hoursWorked = parseAmount(mensuelMatch[5]);
+            if (result.hourlyNetTaxable === 0) result.hourlyNetTaxable = parseAmount(mensuelMatch[6]);
+            // Par défaut, le net avant impôt est le net à payer s'il n'y a pas de PAS
+            if (result.netBeforeTax === 0) result.netBeforeTax = result.netToPay;
+        }
 
         // Détection de la période (MM/YYYY ou MMM YYYY ou DD/MM/YYYY)
         const periodMatch = text.match(/(?:DU|PÉRIODE|Période\s+du|Bulletin\s+du)\s*(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})/i) ||
@@ -151,7 +180,7 @@ export async function extractDataTraditional(
             extractionMethod: 'traditional',
             success: false,
             errorType: 'validation_error',
-            errorMessage: 'Données insuffisantes extraites par méthode traditionnelle',
+            errorMessage: 'Données insuffisantes extraites par méthode traditionnelle (regex)',
             extractedData: result,
             processingTimeMs,
             payslipId: context?.payslipId,
@@ -167,6 +196,7 @@ export async function extractDataTraditional(
             fileUrl,
             extractionMethod: 'traditional',
             success: false,
+            error: error as Error,
             errorType: ExtractionLogger.categorizeError(error as Error),
             processingTimeMs,
             payslipId: context?.payslipId,

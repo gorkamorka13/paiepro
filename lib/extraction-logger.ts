@@ -2,7 +2,7 @@ import { prisma } from './prisma';
 import type { Prisma } from '@prisma/client';
 
 export type ExtractionMethod = 'traditional' | 'ai' | 'hybrid';
-export type ErrorType = 'api_error' | 'validation_error' | 'parsing_error' | 'network_error' | 'unknown_error';
+export type ErrorType = 'api_error' | 'validation_error' | 'parsing_error' | 'network_error' | 'pdf_error' | 'password_protected' | 'unknown_error';
 
 interface LogExtractionParams {
     // Contexte du fichier
@@ -76,6 +76,14 @@ export class ExtractionLogger {
 
         if (message.includes('fetch') || message.includes('network') || message.includes('timeout')) {
             return 'network_error';
+        }
+
+        if (message.includes('password') || message.includes('encrypted') || message.includes('locked')) {
+            return 'password_protected';
+        }
+
+        if (message.includes('pdf') || message.includes('corrupt') || message.includes('format')) {
+            return 'pdf_error';
         }
 
         if (message.includes('json') || message.includes('parse')) {
