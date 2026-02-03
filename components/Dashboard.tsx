@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getPayslipsAction, deletePayslipAction, deleteMultiplePayslipsAction, updatePayslipAction } from '@/app/actions/payslip';
-import { Trash2, ExternalLink, Users, Edit2, X, Save, FileSpreadsheet, FileText, ArrowUp, ArrowDown, Search } from 'lucide-react';
+import { getPayslipsAction, deletePayslipAction, deleteMultiplePayslipsAction, updatePayslipAction, reanalyzePayslipAction } from '@/app/actions/payslip';
+import { Trash2, ExternalLink, Users, Edit2, X, Save, FileSpreadsheet, FileText, ArrowUp, ArrowDown, Search, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Payslip, UpdatePayslipData } from '@/types/payslip';
 import useSWR from 'swr';
@@ -27,6 +27,7 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedYear, setSelectedYear] = useState<string>('all');
     const [selectedMonth, setSelectedMonth] = useState<string>('all');
+    const [openReanalyzeMenu, setOpenReanalyzeMenu] = useState<string | null>(null);
 
     // Sorting Logic
     const availableYears = Array.from(new Set(payslips.map(p => p.periodYear).filter((y): y is number => !!y))).sort((a, b) => b - a);
@@ -128,6 +129,22 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
             newSelection.add(id);
         }
         setSelectedPayslips(newSelection);
+    };
+
+    const handleReanalyze = async (id: string, method: 'ai' | 'traditional') => {
+        const toastId = toast.loading('Analyse en cours...');
+        try {
+            const result = await reanalyzePayslipAction(id, method);
+            if (result.success) {
+                toast.success('Analyse terminée avec succès', { id: toastId });
+                revalidate();
+            } else {
+                toast.error(result.error || 'Erreur lors de l\'analyse', { id: toastId });
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error('Erreur lors de la ré-analyse', { id: toastId });
+        }
     };
 
     const handleExportExcel = async () => {
@@ -465,6 +482,49 @@ export function Dashboard({ initialPayslips = [] }: { initialPayslips?: Payslip[
                                                 >
                                                     <ExternalLink className="w-4 h-4" />
                                                 </a>
+
+                                                {/* Bouton Ré-analyse (Étoile) */}
+                                                <div className="relative">
+                                                    <button
+                                                        onClick={() => setOpenReanalyzeMenu(openReanalyzeMenu === payslip.id ? null : payslip.id)}
+                                                        className={`p-2 rounded-full transition-colors ${openReanalyzeMenu === payslip.id ? 'bg-purple-100 text-purple-700' : 'text-purple-600 hover:bg-purple-50'}`}
+                                                        title="Ré-analyser"
+                                                    >
+                                                        <Sparkles className="w-4 h-4" />
+                                                    </button>
+
+                                                    {openReanalyzeMenu === payslip.id && (
+                                                        <>
+                                                            <div
+                                                                className="fixed inset-0 z-[40]"
+                                                                onClick={() => setOpenReanalyzeMenu(null)}
+                                                            />
+                                                            <div className="absolute right-0 bottom-full mb-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-[50] p-1 min-w-[180px] animate-in fade-in slide-in-from-bottom-2 duration-200">
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setOpenReanalyzeMenu(null);
+                                                                        handleReanalyze(payslip.id, 'ai');
+                                                                    }}
+                                                                    className="w-full flex items-center gap-2 px-3 py-2.5 text-xs font-bold text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors text-left"
+                                                                >
+                                                                    <Sparkles className="w-3.5 h-3.5" />
+                                                                    Relancer IA 🤖
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setOpenReanalyzeMenu(null);
+                                                                        handleReanalyze(payslip.id, 'traditional');
+                                                                    }}
+                                                                    className="w-full flex items-center gap-2 px-3 py-2.5 text-xs font-bold text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors text-left"
+                                                                >
+                                                                    <Save className="w-3.5 h-3.5" />
+                                                                    Extraire Classique ⚡
+                                                                </button>
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </div>
+
                                                 <button
                                                     onClick={() => setEditingPayslip(payslip)}
                                                     className="p-2 text-amber-600 hover:bg-amber-50 rounded-full transition-colors"

@@ -11,7 +11,8 @@ import { ExtractionLogger } from './extraction-logger';
  */
 export async function extractDataTraditional(
     fileUrl: string,
-    fileMetadata: { fileName: string; fileSize: number; mimeType: string }
+    fileMetadata: { fileName: string; fileSize: number; mimeType: string },
+    context?: { payslipId?: string }
 ): Promise<AIExtractedData | null> {
     const startTime = Date.now();
 
@@ -107,6 +108,7 @@ export async function extractDataTraditional(
                     aiModel: 'Extraction Traditionnelle ⚙️',
                     inputTokens: null,
                     outputTokens: null,
+                    payslipId: context?.payslipId,
                 }) as AIExtractedData;
 
                 // Logger le succès
@@ -117,6 +119,7 @@ export async function extractDataTraditional(
                     success: true,
                     extractedData: validated,
                     processingTimeMs,
+                    payslipId: context?.payslipId,
                 });
 
                 return validated;
@@ -134,6 +137,7 @@ export async function extractDataTraditional(
                     extractedData: result,
                     validationErrors: (err as ZodError).errors,
                     processingTimeMs,
+                    payslipId: context?.payslipId,
                 });
 
                 return null;
@@ -150,6 +154,7 @@ export async function extractDataTraditional(
             errorMessage: 'Données insuffisantes extraites par méthode traditionnelle',
             extractedData: result,
             processingTimeMs,
+            payslipId: context?.payslipId,
         });
 
         return null;
@@ -162,9 +167,9 @@ export async function extractDataTraditional(
             fileUrl,
             extractionMethod: 'traditional',
             success: false,
-            error: error as Error,
             errorType: ExtractionLogger.categorizeError(error as Error),
             processingTimeMs,
+            payslipId: context?.payslipId,
         });
 
         return null;
@@ -176,13 +181,14 @@ export async function extractDataTraditional(
  */
 export async function analyzeDocumentHybrid(
     fileUrl: string,
-    fileMetadata: { fileName: string; fileSize: number; mimeType: string }
+    fileMetadata: { fileName: string; fileSize: number; mimeType: string },
+    context?: { payslipId?: string }
 ): Promise<AIExtractedData & { aiModel: string; inputTokens?: number; outputTokens?: number }> {
-    const traditionalResult = await extractDataTraditional(fileUrl, fileMetadata);
+    const traditionalResult = await extractDataTraditional(fileUrl, fileMetadata, context);
 
     if (traditionalResult) {
         return traditionalResult as AIExtractedData & { aiModel: string };
     }
 
-    return await analyzeDocument(fileUrl, fileMetadata);
+    return await analyzeDocument(fileUrl, fileMetadata, context);
 }

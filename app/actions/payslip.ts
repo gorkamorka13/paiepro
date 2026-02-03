@@ -4,7 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { put, del } from '@vercel/blob';
 import { prisma } from '@/lib/prisma';
 import type { Payslip, UpdatePayslipData } from '@/types/payslip';
-import { analyzeDocumentHybrid } from '@/lib/extraction-service';
+import { analyzeDocumentHybrid, extractDataTraditional } from '@/lib/extraction-service';
+import { analyzeDocument } from '@/lib/ai-service';
 import { fileUploadSchema, createPayslipSchema, updatePayslipSchema } from '@/lib/validations';
 
 import type { ActionResult } from '@/types/payslip';
@@ -348,6 +349,76 @@ export async function deleteMultiplePayslipsAction(ids: string[]): Promise<Actio
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Impossible de supprimer les bulletins'
+        };
+    }
+}
+
+// Action pour relancer l'analyse d'un bulletin existant
+export async function reanalyzePayslipAction(
+    id: string,
+    method: 'ai' | 'traditional'
+): Promise<ActionResult<Payslip>> {
+    try {
+        // 1. Récupérer le bulletin existant
+        const existingPayslip = await prisma.payslip.findUnique({
+            where: { id }
+        });
+
+        if (!existingPayslip) {
+            return { success: false, error: 'Bulletin non trouvé' };
+        }
+
+        const fileMetadata = {
+            fileName: existingPayslip.fileName,
+            fileSize: existingPayslip.fileSize,
+            mimeType: existingPayslip.mimeType,
+        };
+
+        const context = { payslipId: id };
+
+        // 2. Relancer l'analyse selon la méthode choisie
+        let extractedData;
+        if (method === 'ai') {
+            extractedData = await analyzeDocument(existingPayslip.fileUrl, fileMetadata, context);
+        } else {
+            const result = await extractDataTraditional(existingPayslip.fileUrl, fileMetadata, context);
+            if (!result) {
+                return { success: false, error: 'L\'extraction traditionnelle a échoué. Consultez les logs pour plus de détails.' };
+            }
+            extractedData = result;
+        }
+
+        // 3. Valider et mettre à jour
+        const payslipData = updatePayslipSchema.parse({
+            ...extractedData,
+            extractedJson: extractedData,
+        });
+
+        const updatedPayslip = await prisma.payslip.update({
+            where: { id },
+            data: {
+                ...payslipData,
+                processingStatus: 'completed',
+                errorMessage: null,
+                aiModel: (extractedData as any).aiModel || null,
+                inputTokens: (extractedData as any).inputTokens || null,
+                outputTokens: (extractedData as any).outputTokens || null,
+            },
+        });
+
+        revalidatePath('/dashboard');
+        revalidatePath('/admin/extraction-logs');
+
+        return {
+            success: true,
+            data: (updatedPayslip as unknown) as Payslip,
+        };
+
+    } catch (error) {
+        console.error('❌ Erreur dans reanalyzePayslipAction:', error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Erreur lors de la ré-analyse',
         };
     }
 }

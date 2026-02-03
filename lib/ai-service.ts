@@ -34,7 +34,8 @@ CONSIGNES CRITIQUES :
 
 export async function analyzeDocument(
     fileUrl: string,
-    fileMetadata: { fileName: string; fileSize: number; mimeType: string }
+    fileMetadata: { fileName: string; fileSize: number; mimeType: string },
+    context?: { payslipId?: string }
 ): Promise<AIExtractedData & { aiModel: string; inputTokens?: number; outputTokens?: number }> {
     const modelId = 'gemini-2.5-flash';
 
@@ -102,6 +103,7 @@ export async function analyzeDocument(
                 processingTimeMs,
                 inputTokens: result.response.usageMetadata?.promptTokenCount,
                 outputTokens: result.response.usageMetadata?.candidatesTokenCount,
+                payslipId: context?.payslipId,
             });
 
             console.error(`❌ Échec du parsing JSON. Texte après nettoyage:`, cleanedText);
@@ -130,6 +132,7 @@ export async function analyzeDocument(
                 processingTimeMs,
                 inputTokens: result.response.usageMetadata?.promptTokenCount,
                 outputTokens: result.response.usageMetadata?.candidatesTokenCount,
+                payslipId: context?.payslipId,
             });
 
             throw validationError;
@@ -149,6 +152,7 @@ export async function analyzeDocument(
             processingTimeMs,
             inputTokens: result.response.usageMetadata?.promptTokenCount,
             outputTokens: result.response.usageMetadata?.candidatesTokenCount,
+            payslipId: context?.payslipId,
         });
 
         return {
@@ -175,6 +179,7 @@ export async function analyzeDocument(
                 rawResponse,
                 extractedData,
                 processingTimeMs,
+                payslipId: context?.payslipId,
             });
         }
 
@@ -190,13 +195,14 @@ export async function analyzeDocument(
 export async function analyzeDocumentWithRetry(
     fileUrl: string,
     fileMetadata: { fileName: string; fileSize: number; mimeType: string },
-    maxRetries = 3
+    maxRetries = 3,
+    context?: { payslipId?: string }
 ): Promise<AIExtractedData> {
     let lastError: Error | null = null;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-            return await analyzeDocument(fileUrl, fileMetadata);
+            return await analyzeDocument(fileUrl, fileMetadata, context);
         } catch (error) {
             lastError = error as Error;
             console.warn(`Tentative ${attempt}/${maxRetries} échouée:`, lastError.message);
