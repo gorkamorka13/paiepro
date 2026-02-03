@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { ZodError } from 'zod';
 import { aiExtractedDataSchema, type AIExtractedData } from './validations';
 import { ExtractionLogger } from './extraction-logger';
 
@@ -125,7 +126,7 @@ export async function analyzeDocument(
                 errorType: 'validation_error',
                 rawResponse,
                 extractedData,
-                validationErrors: (validationError as any).errors,
+                validationErrors: (validationError as ZodError).errors,
                 processingTimeMs,
                 inputTokens: result.response.usageMetadata?.promptTokenCount,
                 outputTokens: result.response.usageMetadata?.candidatesTokenCount,

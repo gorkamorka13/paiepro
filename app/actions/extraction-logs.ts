@@ -40,3 +40,13 @@ export async function getLogDetailsAction(id: string) {
 export async function revalidateLogsAction() {
     revalidatePath('/admin/extraction-logs');
 }
+
+export async function deleteAllLogsAction() {
+    try {
+        await ExtractionLogger.deleteAllLogs();
+        revalidatePath('/admin/extraction-logs');
+    } catch (error) {
+        console.error('❌ Erreur lors de la suppression des logs:', error);
+        throw new Error('Impossible de supprimer les logs');
+    }
+}

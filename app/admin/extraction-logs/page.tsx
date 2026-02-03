@@ -4,13 +4,13 @@ import { useState, useEffect, useCallback } from 'react';
 import {
     getExtractionLogsAction,
     getErrorStatsAction,
-    getLogDetailsAction
+    getLogDetailsAction,
+    deleteAllLogsAction
 } from '@/app/actions/extraction-logs';
 import {
     AlertCircle,
     CheckCircle2,
     ChevronRight,
-    Search,
     Filter,
     Database,
     Brain,
@@ -19,7 +19,8 @@ import {
     AlertTriangle,
     X,
     FileSearch,
-    RefreshCw
+    RefreshCw,
+    Trash2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -43,9 +44,15 @@ interface Log {
 export default function ExtractionLogsPage() {
     const [logs, setLogs] = useState<Log[]>([]);
     const [total, setTotal] = useState(0);
-    const [stats, setStats] = useState<any>(null);
+    const [stats, setStats] = useState<{ total: number; byMethod: Array<{ extractionMethod: string; _count: number }> } | null>(null);
     const [loading, setLoading] = useState(true);
-    const [selectedLog, setSelectedLog] = useState<any>(null);
+    const [selectedLog, setSelectedLog] = useState<Log & {
+        rawResponse?: string;
+        extractedData?: unknown;
+        validationErrors?: unknown[];
+        payslipId?: string;
+        fileUrl?: string; // Add this if missing in Log
+    } | null>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
 
     // Filtres
@@ -84,7 +91,8 @@ export default function ExtractionLogsPage() {
     const viewDetails = async (id: string) => {
         try {
             const details = await getLogDetailsAction(id);
-            setSelectedLog(details);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            setSelectedLog(details as any);
             setIsDetailOpen(true);
         } catch (error) {
             console.error(error);
@@ -109,6 +117,19 @@ export default function ExtractionLogsPage() {
         }
     };
 
+    const handleDeleteAll = async () => {
+        if (window.confirm('Êtes-vous sûr de vouloir supprimer TOUS les logs d\'extraction ? Cette action est irréversible.')) {
+            try {
+                setLoading(true);
+                await deleteAllLogsAction();
+                await loadData();
+            } catch (error) {
+                console.error(error);
+                alert('Erreur lors de la suppression des logs');
+            }
+        }
+    };
+
     return (
         <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-8 animate-in fade-in duration-500">
             {/* Header */}
@@ -116,7 +137,7 @@ export default function ExtractionLogsPage() {
                 <div>
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
                         <FileSearch className="w-8 h-8 text-blue-600" />
-                        Logs d'extraction IA
+                        Logs d&apos;extraction IA
                     </h1>
                     <p className="text-gray-500 dark:text-gray-400 mt-1">
                         Suivez et diagnostiquez les performances de reconnaissance des bulletins
@@ -125,8 +146,17 @@ export default function ExtractionLogsPage() {
 
                 <div className="flex items-center gap-2">
                     <button
+                        onClick={handleDeleteAll}
+                        className="px-4 py-2.5 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/40 transition-all shadow-sm flex items-center gap-2 font-medium"
+                        title="Supprimer tous les logs"
+                    >
+                        <Trash2 className="w-4 h-4" />
+                        <span className="hidden sm:inline">Tout supprimer</span>
+                    </button>
+                    <button
                         onClick={() => loadData()}
                         className="p-2.5 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm"
+                        title="Actualiser"
                     >
                         <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
                     </button>
@@ -153,7 +183,7 @@ export default function ExtractionLogsPage() {
                         <div>
                             <p className="text-sm text-gray-500 dark:text-gray-400">Par IA</p>
                             <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                                {stats.byMethod.find((m: any) => m.extractionMethod === 'ai')?._count || 0}
+                                {stats.byMethod.find((m: { extractionMethod: string }) => m.extractionMethod === 'ai')?._count || 0}
                             </p>
                         </div>
                     </div>
@@ -165,7 +195,7 @@ export default function ExtractionLogsPage() {
                         <div>
                             <p className="text-sm text-gray-500 dark:text-gray-400">Par Regex</p>
                             <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                                {stats.byMethod.find((m: any) => m.extractionMethod === 'traditional')?._count || 0}
+                                {stats.byMethod.find((m: { extractionMethod: string }) => m.extractionMethod === 'traditional')?._count || 0}
                             </p>
                         </div>
                     </div>
@@ -322,7 +352,7 @@ export default function ExtractionLogsPage() {
                     <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-white/10">
                         <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-900/50">
                             <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                Détails du Log d'Extraction
+                                Détails du Log d&apos;Extraction
                                 <span className={`text-xs px-2.5 py-1 rounded-full ${selectedLog.success ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
                                     {selectedLog.success ? 'Succès' : 'Échec'}
                                 </span>
@@ -366,7 +396,7 @@ export default function ExtractionLogsPage() {
                                 <div className="bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 p-6 rounded-3xl space-y-3">
                                     <div className="flex items-center gap-2 text-red-700 dark:text-red-400 font-bold uppercase text-xs">
                                         <AlertCircle className="w-4 h-4" />
-                                        Message d'Erreur ({selectedLog.errorType})
+                                        Message d&apos;Erreur ({selectedLog.errorType})
                                     </div>
                                     <p className="text-red-600 dark:text-red-300 text-sm font-mono break-all bg-white/50 dark:bg-black/20 p-4 rounded-xl">
                                         {selectedLog.errorMessage || 'Erreur inconnue'}
@@ -393,7 +423,7 @@ export default function ExtractionLogsPage() {
 
                                 {selectedLog.rawResponse && (
                                     <div className="space-y-3">
-                                        <p className="text-xs text-gray-400 uppercase tracking-wider font-bold">Réponse Brute de l'IA</p>
+                                        <p className="text-xs text-gray-400 uppercase tracking-wider font-bold">Réponse Brute de l&apos;IA</p>
                                         <div className="bg-gray-50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 p-6 rounded-3xl text-xs overflow-x-auto max-h-[300px] font-mono border border-gray-200 dark:border-gray-800">
                                             {selectedLog.rawResponse}
                                         </div>

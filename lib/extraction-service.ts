@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 // const pdf = require('pdf-parse'); // Moved inside function
+import { ZodError } from 'zod';
 import { aiExtractedDataSchema, type AIExtractedData } from './validations';
 import { analyzeDocument } from './ai-service';
 import { ExtractionLogger } from './extraction-logger';
@@ -131,7 +132,7 @@ export async function extractDataTraditional(
                     error: err as Error,
                     errorType: 'validation_error',
                     extractedData: result,
-                    validationErrors: (err as any).errors,
+                    validationErrors: (err as ZodError).errors,
                     processingTimeMs,
                 });
 

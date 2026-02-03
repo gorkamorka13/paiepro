@@ -154,6 +154,13 @@ export class ExtractionLogger {
     /**
      * Récupère tous les logs (succès et échecs) avec pagination
      */
+    /**
+     * Supprime tous les logs d'extraction
+     */
+    static async deleteAllLogs() {
+        return await prisma.extractionLog.deleteMany({});
+    }
+
     static async getAllLogs(params?: {
         skip?: number;
         take?: number;
