@@ -19,6 +19,13 @@ const eslintConfig = [
       "*.config.js",
       "*.config.mjs",
       "*.config.ts",
+      // Ignore JS utility scripts
+      "*.js",
+      "scripts/**/*.js",
+      "scripts/**/*.ts",
+      // Next.js auto-generated files
+      "next-env.d.ts",
+      ".next/types/**",
     ],
   },
   ...compat.extends("next/core-web-vitals", "next/typescript"),

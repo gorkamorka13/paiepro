@@ -4,6 +4,13 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
+interface UserWithRole {
+  id: string;
+  name: string | null;
+  username: string;
+  role: string;
+}
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
@@ -30,7 +37,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
           if (!user || !user.password) return null;
 
-          const isPasswordCorrect = await bcrypt.compare(password, user.password);
+          const isPasswordCorrect = await bcrypt.compare(
+            password,
+            user.password,
+          );
 
           if (!isPasswordCorrect) return null;
 
@@ -39,7 +49,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             name: user.name,
             username: user.username,
             role: user.role,
-          };
+          } as UserWithRole;
         } catch (error) {
           console.error("🔓 [Auth] Error during authorize:", error);
           return null;
@@ -50,16 +60,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.role = (user as any).role;
-        token.username = (user as any).username;
+        const userWithRole = user as UserWithRole;
+        token.role = userWithRole.role;
+        token.username = userWithRole.username;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as any).role = token.role;
-        (session.user as any).username = token.username;
-        session.user.id = token.sub!;
+        session.user.role = token.role as string | undefined;
+        session.user.username = token.username as string | undefined;
+        session.user.id = token.sub as string;
       }
       return session;
     },
