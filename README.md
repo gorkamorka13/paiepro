@@ -1,188 +1,113 @@
 # Payslip Analyzer AI
 
-Une application Next.js 15 pour analyser automatiquement vos bulletins de paie avec l'intelligence artificielle (Gemini 2.5 Flash).
+Une application Next.js 15 full-stack pour automatiser l'analyse, le suivi et la visualisation des bulletins de paie français (modèle 2024 inclus) grâce à l'intelligence artificielle.
 
 ## 🚀 Fonctionnalités
 
-- **Upload de fichiers** : Glissez-déposez vos bulletins (PDF, JPEG, PNG)
-- **Analyse IA** : Extraction automatique des données (salaire, cotisations, heures, période)
-- **Visualisation** : Graphiques d'évolution et statistiques
-- **Export PDF** : Génération de rapports récapitulatifs
-- **Mode sombre** : Interface adaptative
+- **Extraction Hybride OCR/IA** :
+  - **Traditionnelle** : Extraction ultra-rapide par Regex pour les formats standards (Gratuit).
+  - **IA (Gemini 2.5 Flash)** : Analyse intelligente et vision multimodale pour les scans et formats complexes.
+- **Dashboard Avancé** :
+  - **Visualisation Dynamique** : Graphiques de répartition par client (Recharts) et évolution des revenus.
+  - **Statistiques Clés** : Calcul automatique du brut, net, impôts, et taux horaire moyen.
+  - **Filtrage & Recherche** : Filtres par année, mois et recherche textuelle multi-champs.
+- **Gestion des Documents** :
+  - **Bulk Actions** : Suppression et sélection multiple.
+  - **Export Multi-format** : Export des données en PDF (jsPDF) et Excel (XLSX).
+  - **Stockage Cloud** : Intégration Vercel Blob pour une gestion sécurisée des fichiers.
+- **Sécurité** :
+  - **Authentification** : Système complet avec NextAuth v5 (Auth.js) et Prisma Adapter.
+  - **Validation Stricte** : Schémas Zod pour garantir l'intégrité des données extraites.
 
 ## 📋 Prérequis
 
-- Node.js 20+
-- npm ou pnpm
-- PostgreSQL (local ou cloud)
-- Clés API :
-  - Google Generative AI API Key
-  - Vercel Blob Storage Token (optionnel pour développement)
-  - PostgreSQL Database URL
+- **Node.js 20+**
+- **PostgreSQL** (Neon, Supabase ou local)
+- **Clés API** :
+  - `GEMINI_API_KEY` (Google AI Studio)
+  - `BLOB_READ_WRITE_TOKEN` (Vercel Blob)
+  - `DATABASE_URL` (PostgreSQL)
+  - `AUTH_SECRET` (Généré via `npx auth secret`)
 
 ## 🔧 Installation
 
 1. **Cloner le projet**
-```bash
-git clone <votre-repo>
-cd paiepro
-```
+   ```bash
+   git clone <votre-repo>
+   cd paiepro
+   ```
 
 2. **Installer les dépendances**
-```bash
-npm install
-```
+   ```bash
+   npm install
+   ```
 
-3. **Configurer les variables d'environnement**
+3. **Configuration**
+   - Copier `.env.example` vers `.env.local`
+   - Remplir les variables d'environnement nécessaires.
 
-Créer un fichier `.env.local` à la racine :
+4. **Base de données**
+   ```bash
+   npx prisma db push
+   npx prisma generate
+   ```
 
-```env
-# Base de données PostgreSQL
-DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE?schema=public"
-
-# Google Generative AI (Obligatoire)
-GOOGLE_GENERATIVE_AI_API_KEY="AIzaSy..."
-
-# Vercel Blob Storage (Optionnel pour dev)
-BLOB_READ_WRITE_TOKEN="vercel_blob_rw_..."
-
-# Next.js
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
-NODE_ENV="development"
-```
-
-Voir `.env.example` pour plus de détails.
-
-4. **Initialiser la base de données**
-```bash
-npx prisma generate
-npx prisma db push
-```
-
-5. **Lancer le serveur de développement**
-```bash
-npm run dev
-```
-
-Ouvrir [http://localhost:3000](http://localhost:3000)
+5. **Lancer le serveur**
+   ```bash
+   npm run dev
+   ```
 
 ## 📁 Structure du Projet
 
 ```
 paiepro/
 ├── app/
-│   ├── actions/
-│   │   └── payslip.ts          # Server Actions
-│   ├── dashboard/
-│   │   └── page.tsx            # Page Dashboard
-│   ├── layout.tsx              # Layout racine
-│   ├── page.tsx                # Page d'accueil
-│   └── globals.css             # Styles globaux
+│   ├── (auth)/             # Routes d'authentification
+│   ├── actions/            # Server Actions (CRUD, Analyse, Upload)
+│   ├── admin/              # Module d'administration
+│   ├── dashboard/          # Vue principale utilisateur
+│   └── globals.css         # Design System (Tailwind)
 ├── components/
-│   ├── Dashboard.tsx           # Composant Dashboard
-│   ├── ExportButton.tsx        # Bouton export PDF
-│   └── UploadZone.tsx          # Zone d'upload
+│   ├── auth/               # Composants Login/Register
+│   ├── Dashboard.tsx       # Cœur de l'application
+│   ├── ClientChart.tsx     # Graphiques Recharts
+│   └── UploadZone.tsx      # Gestion Dropzone & Compression
 ├── lib/
-│   ├── ai-service.ts           # Service Gemini AI
-│   ├── prisma.ts               # Client Prisma
-│   └── validations.ts          # Schémas Zod
+│   ├── ai-service.ts       # Service Gemini 2.5 Flash
+│   ├── extraction-service.ts # OCR Traditionnel & Regex
+│   ├── prisma.ts           # Client Database
+│   └── validations.ts      # Schémas Zod (Single source of truth)
 ├── prisma/
-│   └── schema.prisma           # Schéma de base de données
-├── .env.example                # Template variables d'environnement
-├── package.json
-└── README.md
+│   └── schema.prisma       # Modèle de données (Payslip, User, ExtractionLog)
+└── scripts/                # Utilitaires (Maintenance, Audit)
 ```
 
-## 🔑 Obtenir les Clés API
+## 🛠️ Stack Technique
 
-### Google Generative AI (Obligatoire)
-
-1. Aller sur [Google AI Studio](https://makersuite.google.com/app/apikey)
-2. Cliquer sur "Create API Key"
-3. Copier la clé (format: `AIzaSy...`)
-
-### Vercel Blob Storage (Optionnel)
-
-1. Aller sur [Vercel Dashboard](https://vercel.com/dashboard)
-2. Storage → Create Database → Blob
-3. Copier le token `BLOB_READ_WRITE_TOKEN`
-
-### PostgreSQL Database
-
-**Option 1 : Vercel Postgres (Recommandé)**
-- Vercel Dashboard → Storage → Postgres
-- Gratuit : 256MB
-
-**Option 2 : Supabase**
-- [supabase.com](https://supabase.com/)
-- Gratuit avec 500MB
-
-**Option 3 : Local**
-```bash
-# Installer PostgreSQL
-brew install postgresql@15  # macOS
-sudo apt install postgresql  # Ubuntu
-
-# Créer la base
-createdb payslip_analyzer
-
-# URL locale
-DATABASE_URL="postgresql://localhost:5432/payslip_analyzer"
-```
-
-## 🧪 Tests
-
-```bash
-# Tests unitaires
-npm test
-
-# Tests E2E
-npm run test:e2e
-
-# Couverture
-npm run test:coverage
-```
-
-## 🏗️ Build Production
-
-```bash
-npm run build
-npm start
-```
+- **Framework** : Next.js 15.1 (App Router, Turbopack)
+- **Database** : PostgreSQL & Prisma 6
+- **IA/OCR** : Google Generative AI (Gemini 2.5 Flash), pdf-parse
+- **Auth** : NextAuth v5 (Beta)
+- **UI** : Tailwind CSS, Lucide Icons, Sonner (Toasts)
+- **Charts** : Recharts
+- **Export** : jsPDF-autotable, XLSX (SheetJS)
 
 ## 📊 Scripts Disponibles
 
-- `npm run dev` - Serveur de développement
-- `npm run build` - Build de production
-- `npm start` - Serveur de production
-- `npm run lint` - Linter ESLint
-- `npm run type-check` - Vérification TypeScript
-- `npm run db:generate` - Générer le client Prisma
-- `npm run db:push` - Pousser le schéma vers la DB
-- `npm run db:migrate` - Créer une migration
-- `npm run db:studio` - Ouvrir Prisma Studio
-
-## 🛠️ Technologies
-
-- **Framework** : Next.js 15.1.0
-- **Runtime** : React 19
-- **Database** : PostgreSQL + Prisma 6
-- **AI** : Google Generative AI (Gemini 2.5 Flash)
-- **Storage** : Vercel Blob
-- **Validation** : Zod
-- **UI** : Tailwind CSS, Lucide Icons, Sonner
-- **Charts** : Recharts
-- **Export** : jsPDF
+- `npm run dev` - Développement avec Turbopack
+- `npm run build` - Build de production (incrémente la version)
+- `npm run db:studio` - Interface visuelle Prisma
+- `npm run lint` - Analyse statique du code
+- `npm run type-check` - Vérification Typescript
 
 ## 📝 Licence
 
-MIT
+Distributed under the MIT License. See `LICENSE` for more information.
 
 ## 🤝 Contribution
 
-Les contributions sont les bienvenues ! N'hésitez pas à ouvrir une issue ou une pull request.
-
-## 📧 Support
-
-Pour toute question, consultez la documentation dans `setup-configuration.md` ou ouvrez une issue.
+1. Fork the Project
+2. Create your Feature Branch
+3. Commit your Changes
+4. Push to the Branch
+5. Open a Pull Request
