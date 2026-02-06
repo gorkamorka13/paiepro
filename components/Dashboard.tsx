@@ -1179,9 +1179,11 @@ export function Dashboard({
       )}
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 items-start">
-        <ClientChart clientData={clientData} />
-        <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 items-start min-w-0">
+        <div className="min-w-0">
+          <ClientChart clientData={clientData} />
+        </div>
+        <div className="space-y-6 min-w-0">
           <FinancialTrendsChart timelineData={timelineData} />
           <HoursEvolutionChart timelineData={timelineData} />
           <HourlyRateChart timelineData={timelineData} />

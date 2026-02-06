@@ -142,13 +142,12 @@ export function HourlyRateChart({ timelineData }: HourlyRateChartProps) {
 
         {/* Trend Indicator */}
         <div
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold ${
-            trend > 0.5
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold ${trend > 0.5
               ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
               : trend < -0.5
                 ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
                 : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-400"
-          }`}
+            }`}
         >
           {trend > 0.5 ? (
             <>
@@ -169,115 +168,120 @@ export function HourlyRateChart({ timelineData }: HourlyRateChartProps) {
         </div>
       </div>
 
-      {/* Main Chart - Vertical Bar Chart */}
-      <div className="relative mb-6">
-        {/* Y-Axis Labels */}
-        <div className="absolute left-0 top-0 bottom-12 flex flex-col justify-between text-[10px] font-mono text-gray-500 w-12">
-          {[1, 0.75, 0.5, 0.25, 0].map((ratio) => (
-            <span key={ratio}>{(maxRateValue * ratio).toFixed(0)}€</span>
-          ))}
-        </div>
-
-        {/* Chart Area */}
-        <div className="ml-12 mr-2 relative h-64 flex items-end">
-          {/* Background Grid Lines */}
-          <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+      <div className="overflow-x-auto pb-10 custom-scrollbar">
+        {/* Main Chart - Vertical Bar Chart */}
+        <div className="relative min-w-[350px]">
+          {/* Y-Axis Labels */}
+          <div className="absolute left-0 top-0 bottom-12 flex flex-col justify-between text-[10px] font-mono text-gray-500 w-12">
             {[1, 0.75, 0.5, 0.25, 0].map((ratio) => (
-              <div
-                key={ratio}
-                className="w-full border-t border-gray-100 dark:border-gray-700/50"
-              />
+              <span key={ratio}>{(maxRateValue * ratio).toFixed(0)}€</span>
             ))}
           </div>
 
-          {/* Average Line */}
-          <div
-            className="absolute w-full border-t-2 border-dashed border-gray-400 dark:border-gray-500 z-10"
-            style={{ bottom: `${(avgRate / maxRateValue) * 100}%` }}
-          >
-            <span className="absolute -top-4 right-0 text-[10px] font-bold text-gray-500 bg-white dark:bg-gray-800 px-1">
-              Moy: {avgRate.toFixed(2)}€/h
-            </span>
-          </div>
-
-          {/* Bars */}
-          <div className="relative w-full h-full flex items-end justify-around gap-2 px-2">
-            {dataToUse.map((item, index) => {
-              const barHeight = (item.rate / maxRateValue) * 100;
-
-              return (
+          {/* Chart Area */}
+          <div className="ml-12 mr-2 relative h-64 flex items-end">
+            {/* Background Grid Lines */}
+            <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+              {[1, 0.75, 0.5, 0.25, 0].map((ratio) => (
                 <div
-                  key={index}
-                  className="flex-1 flex flex-col items-center justify-end h-full group relative"
-                >
-                  {/* Value Label on top of bar */}
-                  <div className="absolute bottom-full mb-1 opacity-0 group-hover:opacity-100 transition-opacity text-[9px] font-bold text-gray-600 dark:text-gray-400">
-                    {item.rate.toFixed(0)}€
-                  </div>
+                  key={ratio}
+                  className="w-full border-t border-gray-100 dark:border-gray-700/50"
+                />
+              ))}
+            </div>
 
-                  {/* Bar */}
+            {/* Average Line */}
+            <div
+              className="absolute w-full border-t-2 border-dashed border-gray-400 dark:border-gray-500 z-10"
+              style={{ bottom: `${(avgRate / maxRateValue) * 100}%` }}
+            >
+              <span className="absolute -top-4 right-0 text-[10px] font-bold text-gray-500 bg-white dark:bg-gray-800 px-1">
+                Moy: {avgRate.toFixed(2)}€/h
+              </span>
+            </div>
+
+            {/* Bars */}
+            <div className="relative w-full h-full flex items-end justify-around gap-2 px-2">
+              {dataToUse.map((item, index) => {
+                const barHeight = (item.rate / maxRateValue) * 100;
+
+                return (
                   <div
-                    className={`w-full max-w-[40px] min-w-[20px] rounded-t-lg transition-all duration-500 ease-out cursor-pointer ${getRateColor(
-                      item.rate,
-                    )} opacity-80 group-hover:opacity-100 group-hover:shadow-lg`}
-                    style={{ height: `${Math.max(barHeight, 1)}%` }}
+                    key={index}
+                    className="flex-1 min-w-[30px] flex flex-col items-center justify-end h-full group relative"
                   >
-                    {/* Gradient overlay */}
-                    <div className="w-full h-full rounded-t-lg bg-gradient-to-t from-black/20 to-transparent" />
-                  </div>
+                    {/* Value Label on top of bar */}
+                    <div className="absolute bottom-full mb-1 opacity-0 group-hover:opacity-100 transition-opacity text-[9px] font-bold text-gray-600 dark:text-gray-400">
+                      {item.rate.toFixed(0)}€
+                    </div>
 
-                  {/* Tooltip */}
-                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-900/95 dark:bg-gray-100/95 text-white dark:text-gray-900 text-[10px] p-3 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 z-30 pointer-events-none whitespace-nowrap shadow-2xl backdrop-blur-md min-w-[140px]">
-                    <p className="font-black border-b border-gray-200/20 dark:border-gray-700/20 pb-1.5 mb-1.5 uppercase tracking-widest text-center">
-                      {formatPeriod(item.period)}
-                    </p>
-                    <div className="space-y-1.5">
-                      <p className="flex justify-between gap-4">
-                        <span className="font-bold text-indigo-400">TAUX:</span>
-                        <span className="font-mono font-bold text-lg">
-                          {item.rate.toFixed(2)}€/h
-                        </span>
+                    {/* Bar */}
+                    <div
+                      className={`w-full max-w-[40px] min-w-[20px] rounded-t-lg transition-all duration-500 ease-out cursor-pointer ${getRateColor(
+                        item.rate,
+                      )} opacity-80 group-hover:opacity-100 group-hover:shadow-lg`}
+                      style={{ height: `${Math.max(barHeight, 1)}%` }}
+                    >
+                      {/* Gradient overlay */}
+                      <div className="w-full h-full rounded-t-lg bg-gradient-to-t from-black/20 to-transparent" />
+                    </div>
+
+                    {/* Tooltip */}
+                    <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-900/95 dark:bg-gray-100/95 text-white dark:text-gray-900 text-[10px] p-3 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 z-30 pointer-events-none whitespace-nowrap shadow-2xl backdrop-blur-md min-w-[140px]">
+                      <p className="font-black border-b border-gray-200/20 dark:border-gray-700/20 pb-1.5 mb-1.5 uppercase tracking-widest text-center">
+                        {formatPeriod(item.period)}
                       </p>
-                      <p className="flex justify-between gap-4">
-                        <span className="text-gray-400">Salaire:</span>
-                        <span className="font-mono">
-                          {item.net.toFixed(0)}€
-                        </span>
-                      </p>
-                      <p className="flex justify-between gap-4">
-                        <span className="text-gray-400">Heures:</span>
-                        <span className="font-mono">
-                          {item.hours.toFixed(0)}h
-                        </span>
-                      </p>
-                      <p
-                        className={`flex justify-between gap-4 pt-1.5 mt-1 border-t border-gray-200/20 dark:border-gray-700/20 ${getRateTextColor(
-                          item.rate,
-                        )}`}
-                      >
-                        <span className="font-bold">
-                          {item.rate > avgRate ? "+" : ""}
-                          {avgRate > 0
-                            ? (((item.rate - avgRate) / avgRate) * 100).toFixed(
-                                1,
-                              )
-                            : 0}
-                          %
-                        </span>
-                        <span className="text-gray-400">vs moyenne</span>
-                      </p>
+                      <div className="space-y-1.5">
+                        <p className="flex justify-between gap-4">
+                          <span className="font-bold text-indigo-400">
+                            TAUX:
+                          </span>
+                          <span className="font-mono font-bold text-lg">
+                            {item.rate.toFixed(2)}€/h
+                          </span>
+                        </p>
+                        <p className="flex justify-between gap-4">
+                          <span className="text-gray-400">Salaire:</span>
+                          <span className="font-mono">
+                            {item.net.toFixed(0)}€
+                          </span>
+                        </p>
+                        <p className="flex justify-between gap-4">
+                          <span className="text-gray-400">Heures:</span>
+                          <span className="font-mono">
+                            {item.hours.toFixed(0)}h
+                          </span>
+                        </p>
+                        <p
+                          className={`flex justify-between gap-4 pt-1.5 mt-1 border-t border-gray-200/20 dark:border-gray-700/20 ${getRateTextColor(
+                            item.rate,
+                          )}`}
+                        >
+                          <span className="font-bold">
+                            {item.rate > avgRate ? "+" : ""}
+                            {avgRate > 0
+                              ? (
+                                ((item.rate - avgRate) / avgRate) *
+                                100
+                              ).toFixed(1)
+                              : 0}
+                            %
+                          </span>
+                          <span className="text-gray-400">vs moyenne</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* X-Axis Label */}
+                    <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-full text-center">
+                      <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 tracking-tighter whitespace-nowrap">
+                        {formatPeriod(item.period)}
+                      </span>
                     </div>
                   </div>
-
-                  {/* X-Axis Label */}
-                  <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-full text-center">
-                    <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 tracking-tighter whitespace-nowrap">
-                      {formatPeriod(item.period)}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
@@ -314,8 +318,8 @@ export function HourlyRateChart({ timelineData }: HourlyRateChartProps) {
           <p className="text-[10px] text-gray-400">
             {formatPeriod(
               dataToUse.find((d) => d.rate === minRate && d.rate > 0)?.period ||
-                dataToUse[0]?.period ||
-                "",
+              dataToUse[0]?.period ||
+              "",
             )}
           </p>
         </div>
