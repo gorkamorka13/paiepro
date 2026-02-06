@@ -1,18 +1,29 @@
 "use client";
 
-import { TrendingUp } from "lucide-react";
+import { Clock } from "lucide-react";
 
-interface FinancialTrendsChartProps {
-  timelineData: Array<{ period: string; net: number; gross: number }>;
+interface HoursEvolutionChartProps {
+  timelineData: Array<{
+    period: string;
+    net: number;
+    gross: number;
+    hours: number;
+  }>;
 }
 
-export function FinancialTrendsChart({
+export function HoursEvolutionChart({
   timelineData,
-}: FinancialTrendsChartProps) {
+}: HoursEvolutionChartProps) {
   if (timelineData.length === 0) return null;
 
-  const maxNet = Math.max(...timelineData.map((d) => d.net));
-  const maxValue = Math.max(maxNet, 1);
+  // Use REAL hours data from payslips
+  const hoursData = timelineData.map((item) => ({
+    period: item.period,
+    hours: item.hours || 0,
+  }));
+
+  const maxHours = Math.max(...hoursData.map((d) => d.hours));
+  const maxValue = Math.max(maxHours, 1);
 
   const formatPeriod = (period: string) => {
     const [year, month] = period.split("-");
@@ -35,22 +46,22 @@ export function FinancialTrendsChart({
 
   return (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700 h-fit">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-indigo-600" />
-          <h2 className="text-xl font-semibold">Évolution des Salaires</h2>
+          <Clock className="w-5 h-5 text-emerald-600" />
+          <h2 className="text-xl font-semibold">Évolution des Heures</h2>
         </div>
         <div className="flex gap-4 text-xs font-bold uppercase tracking-wider">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-blue-500 rounded-sm"></div>
-            <span className="text-gray-500">Net</span>
+            <div className="w-3 h-3 bg-emerald-500 rounded-sm"></div>
+            <span className="text-gray-500">Heures</span>
           </div>
         </div>
       </div>
 
       <div className="relative">
         {/* Drawing Area (Grid + Bars) */}
-        <div className="relative h-56 flex items-end">
+        <div className="relative h-48 flex items-end">
           {/* Axes Background */}
           <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
             {[1, 0.75, 0.5, 0.25, 0].map((ratio) => (
@@ -59,7 +70,7 @@ export function FinancialTrendsChart({
                 className="w-full border-t border-gray-100 dark:border-gray-700/50 flex items-center"
               >
                 <span className="text-[10px] font-mono text-gray-400 -mt-3">
-                  {Math.round(maxValue * ratio)}€
+                  {Math.round(maxValue * ratio)}h
                 </span>
               </div>
             ))}
@@ -67,8 +78,8 @@ export function FinancialTrendsChart({
 
           {/* Bars Container */}
           <div className="w-full h-full flex items-end justify-around gap-2 px-4 md:px-8 relative z-0">
-            {timelineData.map((item, index) => {
-              const netHeight = (item.net / maxValue) * 100;
+            {hoursData.map((item, index) => {
+              const hoursHeight = (item.hours / maxValue) * 100;
 
               return (
                 <div
@@ -82,19 +93,19 @@ export function FinancialTrendsChart({
                     </p>
                     <div className="space-y-1">
                       <p className="flex justify-between gap-6">
-                        <span className="font-bold">NET:</span>
+                        <span className="font-bold">HEURES:</span>
                         <span className="font-mono">
-                          {item.net.toFixed(2)}€
+                          {item.hours.toFixed(1)}h
                         </span>
                       </p>
                     </div>
                   </div>
 
                   <div className="w-full flex items-end justify-center h-full relative group-hover:scale-x-105 transition-transform duration-500">
-                    {/* Net Bar */}
+                    {/* Hours Bar */}
                     <div
-                      className="w-4 md:w-5 bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-lg transition-all duration-1000 ease-out shadow-[0_0_20px_rgba(37,99,235,0.2)] group-hover:shadow-[0_0_25px_rgba(37,99,235,0.4)] group-hover:from-blue-500 group-hover:to-blue-300 origin-bottom"
-                      style={{ height: `${netHeight}%` }}
+                      className="w-4 md:w-5 bg-gradient-to-t from-emerald-600 to-emerald-400 rounded-t-lg transition-all duration-1000 ease-out shadow-[0_0_20px_rgba(5,150,105,0.2)] group-hover:shadow-[0_0_25px_rgba(5,150,105,0.4)] group-hover:from-emerald-500 group-hover:to-emerald-300 origin-bottom"
+                      style={{ height: `${hoursHeight}%` }}
                     ></div>
                   </div>
                 </div>
@@ -105,7 +116,7 @@ export function FinancialTrendsChart({
 
         {/* Labels Area (Below the 0 line) */}
         <div className="w-full flex justify-around gap-2 px-4 md:px-8 mt-2">
-          {timelineData.map((item, index) => (
+          {hoursData.map((item, index) => (
             <div
               key={index}
               className="flex-1 max-w-[100px] flex justify-center"

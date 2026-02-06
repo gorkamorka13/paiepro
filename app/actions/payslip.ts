@@ -523,3 +523,164 @@ export async function reanalyzePayslipAction(
     };
   }
 }
+
+// Fonction pour télécharger les images des bulletins en ZIP
+export async function downloadPayslipImagesAction(
+  payslipIds: string[],
+): Promise<
+  ActionResult<{
+    zipData: string;
+    fileName: string;
+    fileSize: number;
+    count: number;
+  }>
+> {
+  try {
+    // Récupérer les bulletins depuis la base de données
+    const payslips = await prisma.payslip.findMany({
+      where: payslipIds.length > 0 ? { id: { in: payslipIds } } : undefined,
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (payslips.length === 0) {
+      return {
+        success: false,
+        error: "Aucun bulletin de paie à télécharger",
+      };
+    }
+
+    // Importer jszip dynamiquement
+    const JSZip = (await import("jszip")).default;
+    const zip = new JSZip();
+
+    // Créer un dossier pour les fichiers
+    const folder = zip.folder("bulletins-paie");
+    if (!folder) {
+      return {
+        success: false,
+        error: "Erreur lors de la création du dossier ZIP",
+      };
+    }
+
+    // Métadonnées pour le fichier JSON
+    const metadata: Array<{
+      fileName: string;
+      originalName: string;
+      period: string;
+      employer: string;
+      employee: string;
+      netToPay: number;
+      grossSalary: number;
+      hoursWorked: number;
+      downloadDate: string;
+    }> = [];
+
+    let totalSize = 0;
+
+    // Télécharger chaque fichier et l'ajouter au ZIP
+    for (const payslip of payslips) {
+      try {
+        // Télécharger le fichier depuis Vercel Blob
+        const response = await fetch(payslip.fileUrl);
+        if (!response.ok) {
+          console.warn(`⚠️ Impossible de télécharger ${payslip.fileName}`);
+          continue;
+        }
+
+        const blob = await response.blob();
+        const arrayBuffer = await blob.arrayBuffer();
+        totalSize += arrayBuffer.byteLength;
+
+        // Créer le nom du fichier : YYYY-MM_Employeur_Nom.pdf
+        const period =
+          payslip.periodYear && payslip.periodMonth
+            ? `${payslip.periodYear}-${String(payslip.periodMonth).padStart(2, "0")}`
+            : "unknown";
+        const employer = (payslip.employerName || "Unknown")
+          .replace(/[^a-zA-Z0-9]/g, "_")
+          .substring(0, 20);
+        const employee = (payslip.employeeName || "Unknown")
+          .replace(/[^a-zA-Z0-9]/g, "_")
+          .substring(0, 20);
+        const extension = payslip.fileName.split(".").pop() || "pdf";
+        const zipFileName = `${period}_${employer}_${employee}.${extension}`;
+
+        // Ajouter le fichier au ZIP
+        folder.file(zipFileName, arrayBuffer);
+
+        // Ajouter aux métadonnées
+        metadata.push({
+          fileName: zipFileName,
+          originalName: payslip.fileName,
+          period:
+            payslip.periodYear && payslip.periodMonth
+              ? `${String(payslip.periodMonth).padStart(2, "0")}/${payslip.periodYear}`
+              : "Inconnu",
+          employer: payslip.employerName || "Inconnu",
+          employee: payslip.employeeName || "Inconnu",
+          netToPay: payslip.netToPay,
+          grossSalary: payslip.grossSalary,
+          hoursWorked: payslip.hoursWorked,
+          downloadDate: new Date().toISOString(),
+        });
+      } catch (error) {
+        console.error(
+          `❌ Erreur lors du téléchargement de ${payslip.fileName}:`,
+          error,
+        );
+      }
+    }
+
+    if (metadata.length === 0) {
+      return {
+        success: false,
+        error: "Aucun fichier n'a pu être téléchargé",
+      };
+    }
+
+    // Ajouter le fichier de métadonnées
+    folder.file(
+      "metadata.json",
+      JSON.stringify(
+        {
+          downloadDate: new Date().toISOString(),
+          totalFiles: metadata.length,
+          totalSize: totalSize,
+          payslips: metadata,
+        },
+        null,
+        2,
+      ),
+    );
+
+    // Générer le ZIP
+    const zipContent = await zip.generateAsync({ type: "arraybuffer" });
+    const zipSize = zipContent.byteLength;
+
+    // Convertir en base64 pour le transfert
+    const base64 = Buffer.from(zipContent).toString("base64");
+
+    // Créer le nom du fichier ZIP
+    const date = new Date().toISOString().split("T")[0];
+    const zipFileName = `Bulletins_Paie_${date}_${metadata.length}_fichiers.zip`;
+
+    return {
+      success: true,
+      data: {
+        zipData: base64,
+        fileName: zipFileName,
+        fileSize: zipSize,
+        count: metadata.length,
+      },
+    };
+  } catch (error) {
+    console.error("❌ Erreur dans downloadPayslipImagesAction:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Erreur lors de la création du ZIP",
+    };
+  }
+}
